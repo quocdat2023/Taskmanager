@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Đăng ký{% endblock %}
+
+{% block body %}
+<div class="auth-wrapper" style="align-items: flex-start; padding-top: 50px;">
+    <div class="auth-card fade-in" style="max-width: 500px;">
+        <div class="auth-logo mx-auto">
+            <i class="fas fa-user-plus text-white"></i>
+        </div>
+        <h2 class="auth-title">Đăng ký tài khoản</h2>
+        <p class="auth-subtitle">Tham gia EduTask ngay hôm nay</p>
+
+        <form class="auth-form" id="registerForm" onsubmit="event.preventDefault(); Auth.register(Object.fromEntries(new FormData(this)));">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label-custom" for="username">Tên đăng nhập <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control-custom" id="username" name="username" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label-custom" for="full_name">Họ và tên <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control-custom" id="full_name" name="full_name" required>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label-custom" for="email">Email <span class="text-danger">*</span></label>
+                <input type="email" class="form-control-custom" id="email" name="email" required>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label-custom" for="password">Mật khẩu <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control-custom" id="password" name="password" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label-custom" for="role">Vai trò</label>
+                    <select class="form-control-custom" id="role" name="role">
+                        <option value="student">Sinh viên</option>
+                        <option value="teacher">Giảng viên</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="student-fields" class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label-custom" for="student_id">Mã sinh viên</label>
+                    <input type="text" class="form-control-custom" id="student_id" name="student_id">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label-custom" for="department">Khoa/Ngành</label>
+                    <input type="text" class="form-control-custom" id="department" name="department">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-submit mt-2">
+                <i class="fas fa-check-circle me-2"></i> Đăng ký
+            </button>
+        </form>
+
+        <div class="auth-footer text-center mt-3">
+            Đã có tài khoản? <a href="{{ url_for('pages.login_page') }}">Đăng nhập</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('role').addEventListener('change', function() {
+        const studentFields = document.getElementById('student-fields');
+        if (this.value === 'student') {
+            studentFields.style.display = 'flex';
+        } else {
+            studentFields.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}

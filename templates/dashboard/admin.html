@@ -1,0 +1,270 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Dashboard Admin{% endblock %}
+{% block header_title %}Quản trị hệ thống{% endblock %}
+{% block header_subtitle %}Tổng quan cho Quản trị viên{% endblock %}
+
+{% block content %}
+<style>
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--accent-green, #2ecc71);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        animation: pulse-green 2s infinite;
+    }
+
+    @keyframes pulse-green {
+        0% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        }
+
+        70% {
+            transform: scale(1);
+            box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
+        }
+
+        100% {
+            transform: scale(0.95);
+            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+        }
+    }
+</style>
+<div class="row g-4 mb-4">
+    <!-- Stat Row 1: Users & System -->
+    <div class="col-md-3">
+        <div class="stat-card purple">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Tổng Người dùng</span>
+                <i class="fas fa-users" style="font-size:1.2rem; color:var(--primary);"></i>
+            </div>
+            <div class="stat-value" id="stats-users">0</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card cyan">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Giảng viên</span>
+                <i class="fas fa-chalkboard-teacher" style="font-size:1.2rem; color:var(--accent-cyan);"></i>
+            </div>
+            <div class="stat-value text-info" id="stats-teachers">0</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card pink">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Sinh viên</span>
+                <i class="fas fa-user-graduate" style="font-size:1.2rem; color:var(--accent-pink);"></i>
+            </div>
+            <div class="stat-value text-danger" id="stats-students">0</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card orange">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Yêu cầu phê duyệt</span>
+                <i class="fas fa-check-double" style="font-size:1.2rem; color:var(--accent-orange);"></i>
+            </div>
+            <div class="stat-value text-warning" id="stats-requests">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Row 2: Tasks Overview -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="glass-card h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-icon purple mb-0" style="width:40px; height:40px; font-size:1rem;">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">Tổng số công việc</h6>
+            </div>
+            <div class="stat-value fs-3" id="stats-tasks-total">0</div>
+            <p class="text-muted small mb-0">Tất cả công việc trong hệ thống</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card h-100" style="border-bottom: 2px solid var(--accent-red);">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-icon pink mb-0" style="width:40px; height:40px; font-size:1rem; background:rgba(225,112,85,0.1); color:var(--accent-red);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">Công việc quá hạn</h6>
+            </div>
+            <div class="stat-value fs-3 text-danger" id="stats-tasks-overdue">0</div>
+            <p class="text-muted small mb-0">Cần đốc thúc hoàn thành</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="glass-card h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="stat-icon cyan mb-0" style="width:40px; height:40px; font-size:1rem; background:rgba(0,184,148,0.1); color:var(--accent-green);">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">Đã hoàn thành</h6>
+            </div>
+            <div class="stat-value fs-3 text-success" id="stats-tasks-done">0</div>
+            <p class="text-muted small mb-0">Dựa trên trạng thái master</p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Pending Requests List -->
+    <div class="col-lg-8">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-hourglass-half me-2 text-warning"></i>Yêu cầu chưa xử lý</h5>
+                <a href="{{ url_for('pages.task_requests_page') }}" class="btn-glass px-3 py-1" style="font-size:0.75rem;">Xem tất cả</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th>Người yêu cầu</th>
+                            <th>Loại yêu cầu</th>
+                            <th>Công việc</th>
+                            <th>Ngày gửi</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-requests-list">
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">Đang tải dữ liệu...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="col-lg-4">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-server me-2 text-danger"></i>Hệ thống</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="pulse-dot"></span>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-10 pb-3">
+                <span class="text-secondary small"><i class="fas fa-database me-2"></i>Database</span>
+                <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3" id="health-db" style="font-size:0.7rem;">Checking...</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-10 pb-3">
+                <span class="text-secondary small"><i class="fas fa-hdd me-2"></i>Storage</span>
+                <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3" id="health-storage" style="font-size:0.7rem;">Checking...</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary border-opacity-10 pb-3">
+                <span class="text-secondary small"><i class="fas fa-envelope me-2"></i>Mail</span>
+                <span class="badge bg-success bg-opacity-25 text-success rounded-pill px-3" id="health-mail" style="font-size:0.7rem;">Checking...</span>
+            </div>
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <span class="text-secondary small"><i class="fas fa-clock me-2"></i>Cập nhật lúc</span>
+                <span id="last-update" class="text-muted" style="font-size:0.7rem;">--:--:--</span>
+            </div>
+            
+            <div class="mt-4 pt-2">
+                <button onclick="refreshStats()" class="btn-primary-custom w-100 justify-content-center">
+                    <i class="fas fa-sync-alt"></i> Làm mới dữ liệu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function refreshStats() {
+        try {
+            // 1. Fetch user counts
+            const usersData = await API.get('/admin/users');
+            if (usersData && usersData.users) {
+                document.getElementById('stats-users').textContent = usersData.users.length;
+                document.getElementById('stats-teachers').textContent = usersData.users.filter(u => u.role === 'teacher').length;
+                document.getElementById('stats-students').textContent = usersData.users.filter(u => u.role === 'student').length;
+            }
+
+            // 2. Fetch task stats
+            const statsData = await API.get('/tasks/stats');
+            if (statsData && statsData.stats) {
+                const s = statsData.stats;
+                document.getElementById('stats-requests').textContent = s.pending_requests || 0;
+                document.getElementById('stats-tasks-total').textContent = s.total || 0;
+                document.getElementById('stats-tasks-overdue').textContent = s.overdue || 0;
+                document.getElementById('stats-tasks-done').textContent = s.done || 0;
+            }
+
+            // 3. Fetch pending requests
+            const reqsData = await API.get('/tasks/requests');
+            if (reqsData && reqsData.requests) {
+                renderPendingRequests(reqsData.requests.slice(0, 5));
+            }
+
+            // 4. Fetch system health
+            const health = await API.get('/admin/system/health');
+            if (health) {
+                updateHealthBadge('health-db', health.database === 'online', 'Online', 'Offline');
+                updateHealthBadge('health-storage', health.storage === 'healthy', 'Bình thường', 'Lỗi (Write)');
+                updateHealthBadge('health-mail', health.mail === 'configured', 'Đã cấu hình', 'Chưa cấu hình');
+            }
+
+            // Update timestamp
+            document.getElementById('last-update').textContent = new Date().toLocaleTimeString('vi-VN');
+        } catch (e) {
+            console.error('Lỗi khi tải dữ liệu admin', e);
+        }
+    }
+
+    function renderPendingRequests(requests) {
+        const list = document.getElementById('pending-requests-list');
+        if (!list) return;
+
+        if (requests.length === 0) {
+            list.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Không có yêu cầu nào đang chờ</td></tr>';
+            return;
+        }
+
+        const typeMap = {
+            'assign': '<span class="badge bg-primary bg-opacity-10 text-primary small">Giao việc</span>',
+            'delete': '<span class="badge bg-danger bg-opacity-10 text-danger small">Xóa việc</span>',
+            'withdraw': '<span class="badge bg-warning bg-opacity-10 text-warning small">Rút khỏi</span>'
+        };
+
+        list.innerHTML = requests.map(r => `
+            <tr>
+                <td>
+                    <div class="fw-bold" style="font-size:0.85rem;">${r.requester_name}</div>
+                    <div class="text-muted" style="font-size:0.7rem;">ID: ${r.requester_id}</div>
+                </td>
+                <td>${typeMap[r.request_type] || r.request_type}</td>
+                <td><div class="text-truncate" style="max-width:150px; font-size:0.85rem;" title="${r.task_title}">${r.task_title}</div></td>
+                <td style="font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString('vi-VN')}</td>
+                <td class="text-end">
+                    <a href="/tasks/requests" class="btn-glass p-1 px-2" style="font-size:0.7rem;">Xử lý</a>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    function updateHealthBadge(id, isOk, okText, failText) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = isOk ? okText : failText;
+        el.className = isOk ?
+            'badge bg-success bg-opacity-25 text-success rounded-pill px-3' :
+            'badge bg-danger bg-opacity-25 text-danger rounded-pill px-3';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshStats();
+        // Poll every 15 seconds
+        setInterval(refreshStats, 15000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block body %}
+<div class="qna-forum-wrapper">
+    <!-- Special Q&A Top Navbar -->
+    <header class="top-header" style="left: 0; width: 100%; padding-left: 32px;">
+        <div class="header-left">
+            <a href="{{ url_for('pages.dashboard') }}" class="btn-glass me-3" title="Quay lại Dashboard">
+                <i class="fas fa-arrow-left"></i> Dashboard
+            </a>
+            <div>
+                <h1 class="header-title" style="margin:0;">{% block header_title %}Diễn đàn Thảo luận{% endblock %}</h1>
+                <div class="header-subtitle">{% block header_subtitle %}Hỏi đáp EduTask{% endblock %}</div>
+            </div>
+        </div>
+
+        <div class="header-right">
+             <h6 class="mb-0 me-3 d-none d-md-block">Xin chào: {{ session.get('full_name', '?')}}</h6>
+             <div class="dropdown">
+                <button class="header-btn" type="button" data-bs-toggle="dropdown">
+                    <div class="sidebar-user-avatar" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                        {{ session.get('full_name', '?')[:2] | upper }}
+                    </div>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end bg-dark border-secondary">
+                    <li><h6 class="dropdown-header text-white">{{ session.get('full_name') }}</h6></li>
+                    <li><hr class="dropdown-divider border-secondary"></li>
+                    <li><a class="dropdown-item text-danger" href="#" onclick="Auth.logout()"><i class="fas fa-sign-out-alt me-2"></i>Đăng xuất</a></li>
+                </ul>
+            </div>
+        </div>
+    </header>
+
+    <main class="qna-main-container">
+        <div class="container py-4">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<style>
+.qna-forum-wrapper {
+    min-height: 100vh;
+    background: var(--bg-primary);
+}
+.qna-main-container {
+    padding-top: var(--header-height);
+}
+/* Ensure the layout looks good without sidebar */
+@media (max-width: 768px) {
+    .top-header {
+        padding: 0 15px !important;
+    }
+}
+</style>
+{% endblock %}

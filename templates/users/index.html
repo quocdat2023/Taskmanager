@@ -1,0 +1,174 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Quản lý Người dùng{% endblock %}
+{% block header_title %}Hệ thống Người dùng{% endblock %}
+{% block header_subtitle %}Chỉ dành cho Quản trị viên (Admin){% endblock %}
+
+{% block content %}
+<div class="glass-card mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <h5 class="fw-bold mb-0">Danh sách người dùng</h5>
+        <div class="text-muted" style="font-size:0.85rem;">Quản lý giảng viên và sinh viên có trong hệ thống</div>
+    </div>
+    <div style="display:flex; gap:12px;">
+        <button class="btn-primary-custom" onclick="Users.showCreateModal()">
+            <i class="fas fa-user-plus"></i> Thêm người dùng
+        </button>
+    </div>
+</div>
+
+<div class="glass-card fade-in">
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th style="width: 5%">ID</th>
+                    <th style="width: 25%">Người dùng</th>
+                    <th style="width: 20%">Email</th>
+                    <th style="width: 15%">Vai trò</th>
+                    <th style="width: 15%">Mã SV/Khoa</th>
+                    <th style="width: 10%">Trạng thái</th>
+                    <th style="width: 10%">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="users-table-body">
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">Đang tải...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Thêm Người dùng -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title">Thêm người dùng nhanh</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="userForm"
+                onsubmit="event.preventDefault(); alert('Chức năng demo trên giao diện do admin chưa tích hợp APIs create users hoàn chỉnh qua form này, admin tạo account tại màn register.'); bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();">
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Với admin, hệ thống đã hỗ trợ đăng ký từ route <code>/register</code>.
+                        Bảng dưới hiển thị dữ liệu.</p>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Đóng</button>
+                    <button type="submit" class="btn-primary-custom">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const Users = {
+        pagination: {
+            page: 1,
+            perPage: 10,
+            total: 0,
+            pages: 0
+        },
+
+        async init(page = 1) {
+            try {
+                this.pagination.page = page;
+                const data = await API.get(`/users?page=${page}&per_page=${this.pagination.perPage}`);
+                const tbody = document.getElementById('users-table-body');
+                if (data && data.users && data.users.length > 0) {
+                    this.pagination.total = data.total;
+                    this.pagination.pages = data.pages;
+
+                    tbody.innerHTML = data.users.map(u => `
+                        <tr class="fade-in">
+                            <td>#${u.id}</td>
+                            <td>
+                                <div class="fw-bold">${u.full_name}</div>
+                                <div class="text-muted" style="font-size:0.75rem;">@${u.username}</div>
+                            </td>
+                            <td>${u.email}</td>
+                            <td>${getRoleBadge(u.role)}</td>
+                            <td>${u.role === 'student' ? (u.student_id ? u.student_id : 'Chưa có MSV') : (u.department ? u.department : '—')}</td>
+                            <td><span class="badge bg-success bg-opacity-25 text-success">Active</span></td>
+                            <td>
+                                <button class="btn-danger btn-sm" style="padding:4px 8px; font-size:0.7rem;" onclick="Users.delete(${u.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                    this.renderPagination();
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted border-0">Chưa có dữ liệu</td></tr>';
+                    const pagContainer = document.getElementById('users-pagination');
+                    if (pagContainer) pagContainer.innerHTML = '';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        },
+
+        renderPagination() {
+            let container = document.getElementById('users-pagination');
+            if (!container) {
+                const tableCard = document.querySelector('.table-responsive').parentNode;
+                container = document.createElement('div');
+                container.id = 'users-pagination';
+                container.className = 'd-flex justify-content-between align-items-center mt-3 px-3';
+                tableCard.appendChild(container);
+            }
+
+            const { page, pages, total } = this.pagination;
+            if (total === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <div class="text-muted" style="font-size: 0.85rem;">
+                    Hiển thị <strong>${(page-1)*this.pagination.perPage + 1}</strong>-<strong>${Math.min(page*this.pagination.perPage, total)}</strong> / <strong>${total}</strong>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item ${page === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="Users.init(${page - 1})"><i class="fas fa-chevron-left"></i></a>
+                        </li>
+            `;
+
+            for (let i = 1; i <= pages; i++) {
+                if (i === 1 || i === pages || (i >= page - 2 && i <= page + 2)) {
+                    html += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" onclick="Users.init(${i})">${i}</a></li>`;
+                } else if (i === page - 3 || i === page + 3) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            html += `
+                        <li class="page-item ${page === pages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="Users.init(${page + 1})"><i class="fas fa-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            `;
+            container.innerHTML = html;
+        },
+
+        showCreateModal() {
+            new bootstrap.Modal(document.getElementById('userModal')).show();
+        },
+        async delete(id) {
+            if (confirm('Khóa/Xóa tài khoản này?')) {
+                Toast.success('Đã nhận yêu cầu xóa hệ thống (Chưa build Backend Delete User)');
+            }
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        Users.init();
+    });
+</script>
+{% endblock %}

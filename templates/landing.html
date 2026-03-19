@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Trang chủ{% endblock %}
+
+{% block body %}
+<!-- Hero Section -->
+<div class="landing-hero">
+    <div class="container text-center">
+        <h1 class="display-3 fw-bold mb-4 fade-in">Hệ thống Quản lý EduTask</h1>
+        <p class="lead mb-5 fade-in" style="animation-delay: 0.2s;">Nền tảng quản lý công việc, lịch học và thảo luận tri thức tối ưu cho Giảng viên & Sinh viên.</p>
+        <div class="d-flex justify-content-center gap-3 fade-in" style="animation-delay: 0.4s;">
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('pages.dashboard') }}" class="btn-primary-custom px-5 py-3 rounded-pill btn-lg shadow">
+                    <i class="fas fa-th-large me-2"></i> Vào Dashboard
+                </a>
+            {% else %}
+                <a href="{{ url_for('pages.login_page') }}" class="btn-primary-custom px-5 py-3 rounded-pill btn-lg shadow">
+                    <i class="fas fa-sign-in-alt me-2"></i> Đăng nhập ngay
+                </a>
+                <a href="{{ url_for('pages.register_page') }}" class="btn-glass px-5 py-3 rounded-pill btn-lg">
+                     Tham gia EduTask
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Features section (Quick overview) -->
+<div class="container py-5" id="features">
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="glass-card p-4 h-100">
+                <i class="fas fa-tasks text-info mb-3" style="font-size: 2.5rem;"></i>
+                <h4 class="fw-bold">Quản lý Task</h4>
+                <p class="text-secondary">Giao nhiệm vụ và theo dõi tiến độ một cách chuyên nghiệp giữa các Giảng viên.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card p-4 h-100">
+                <i class="fas fa-calendar-alt text-warning mb-3" style="font-size: 2.5rem;"></i>
+                <h4 class="fw-bold">Lịch học & Deadline</h4>
+                <p class="text-secondary">Thông báo lịch học và nhắc nhở thời hạn quan trọng cho sinh viên nhanh chóng.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card p-4 h-100">
+                <i class="fas fa-comments text-primary mb-3" style="font-size: 2.5rem;"></i>
+                <h4 class="fw-bold">Diễn đàn Thảo luận</h4>
+                <p class="text-secondary">Nơi sinh viên có thể đặt câu hỏi và nhận giải đáp trực tiếp từ Giảng viên.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Forum Section (Landing Page Focus) -->
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-end mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Diễn đàn Thảo luận (Forum)</h2>
+            <p class="text-secondary mb-0">Cộng đồng hỏi đáp kiến thức EduTask</p>
+        </div>
+        {% if session.get('user_id') %}
+            <a href="{{ url_for('pages.qna_page') }}" class="btn-primary-custom btn-sm">Xem tất cả thảo luận</a>
+        {% endif %}
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8" id="landing-qna-list">
+            <!-- Loading state -->
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="glass-card">
+                <h5 class="fw-bold mb-3">Về EduTask Forum</h5>
+                <p class="text-secondary" style="font-size: 0.9rem;">
+                    Đây là không gian công cộng nơi mọi sinh viên có thể tìm kiếm lời giải cho các vấn đề học thuật. 
+                    Mọi thảo luận đều được giám sát bởi đội ngũ Giảng viên tâm huyết.
+                </p>
+                <hr style="border-color: var(--border-color);">
+                <ul class="list-unstyled mb-0" style="font-size: 0.9rem; color: var(--text-secondary);">
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Hỏi đáp môn học 24/7</li>
+                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Giảng viên trực tiếp trả lời</li>
+                    <li><i class="fas fa-check-circle text-success me-2"></i> Lưu trữ tài liệu ôn tập</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.landing-hero {
+    background: linear-gradient(135deg, rgba(15, 12, 41, 0.9), rgba(48, 43, 99, 0.8), rgba(36, 36, 62, 0.9)), 
+                url('https://images.unsplash.com/photo-1523050853063-bd8012fec046?auto=format&fit=crop&q=80&w=2000');
+    background-size: cover;
+    background-position: center;
+    padding: 120px 0;
+    color: white;
+    margin-bottom: 50px;
+}
+.qna-forum-item {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+.qna-forum-item:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary-light);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const data = await API.get('/qna/questions');
+        const list = document.getElementById('landing-qna-list');
+        
+        if (data && data.questions && data.questions.length > 0) {
+            list.innerHTML = data.questions.slice(0, 5).map(q => `
+                <div class="qna-forum-item" onclick="location.href='/qna'">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="fw-bold mb-0 text-primary-light">${q.title}</h5>
+                        <span class="badge ${q.is_resolved ? 'bg-success' : 'bg-warning'} bg-opacity-25" style="color:${q.is_resolved ? '#55efc4' : '#ffeaa7'}">
+                            ${q.is_resolved ? 'Đã giải quyết' : 'Đang thảo luận'}
+                        </span>
+                    </div>
+                    <p class="text-secondary text-truncate-2 mb-3" style="font-size:0.9rem; mask-image: linear-gradient(to bottom, black 50%, transparent 100%); line-height:1.5;">${q.content}</p>
+                    <div class="d-flex align-items-center justify-content-between text-muted" style="font-size:0.8rem;">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-circle me-2"></i> ${q.asker_name}
+                            <span class="mx-2">•</span>
+                            <i class="fas fa-clock me-2"></i> ${timeAgo(q.created_at)}
+                            ${q.course_name ? `<span class="mx-2">•</span><i class="fas fa-book me-2"></i> ${q.course_name}` : ''}
+                        </div>
+                        <div>
+                            <i class="fas fa-comment ms-3 me-1"></i> ${q.answers_count || 0} phản hồi
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = `
+                <div class="empty-state py-5 glass-card text-center">
+                    <i class="fas fa-comments text-muted mb-3" style="font-size:3rem; opacity:0.3"></i>
+                    <p class="text-muted">Chưa có thảo luận nào trên diễn đàn.</p>
+                </div>
+            `;
+        }
+    } catch (e) {
+        console.error('Landing page load error:', e);
+    }
+});
+</script>
+{% endblock %}

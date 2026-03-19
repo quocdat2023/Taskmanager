@@ -1,0 +1,156 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Dashboard Giảng viên{% endblock %}
+{% block header_title %}Tổng quan giảng dạy{% endblock %}
+{% block header_subtitle %}Xin chào {{ session.get('full_name') }}, một ngày làm việc hiệu quả!{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Stat Cards -->
+    <div class="col-md-3">
+        <div class="stat-card purple">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Task đã giao</span>
+                <i class="fas fa-tasks text-white" style="font-size:1.2rem;"></i>
+            </div>
+            <div class="stat-value" id="stats-total">0</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card cyan">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">SV đang làm</span>
+                <i class="fas fa-spinner text-white" style="font-size:1.2rem;"></i>
+            </div>
+            <div class="stat-value text-info" id="stats-progress">0</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card pink">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Số câu hỏi mới</span>
+                <i class="fas fa-question-circle text-white" style="font-size:1.2rem;"></i>
+            </div>
+            <div class="stat-value text-danger" id="stats-qna">0</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card orange">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="stat-label text-uppercase" style="letter-spacing:1px;">Tài liệu đã tải</span>
+                <i class="fas fa-file-alt text-white" style="font-size:1.2rem;"></i>
+            </div>
+            <div class="stat-value text-success" id="stats-docs">0</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-tasks me-2 text-primary"></i>Task mới giao gần đây</h5>
+                <a href="{{ url_for('pages.tasks_page') }}" class="btn-glass btn-sm">Quản lý</a>
+            </div>
+            <div id="recent-tasks">
+                <div class="text-center py-4 text-white">
+                    <div class="spinner-border spinner-border-sm me-2"></div>Đang tải...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Câu hỏi chưa giải quyết -->
+    <div class="col-md-6">
+        <div class="glass-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="fas fa-comments me-2 text-danger"></i>Hỏi đáp (Q&A) cần trả lời</h5>
+                <a href="{{ url_for('pages.qna_page') }}" class="btn-glass btn-sm">Xem tất cả</a>
+            </div>
+            <div id="recent-qna">
+                <div class="text-center py-4 text-white">
+                    <div class="spinner-border spinner-border-sm me-2"></div>Đang tải...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // Load task stats
+            const statsData = await API.get('/tasks/stats');
+            if (statsData && statsData.stats) {
+                document.getElementById('stats-total').textContent = statsData.stats.total;
+                document.getElementById('stats-progress').textContent = statsData.stats.in_progress;
+            }
+
+            // QnA and Doc stats (placeholder fetch)
+            const qnaData = await API.get('/qna/questions');
+            if (qnaData && qnaData.questions) {
+                const unresolved = qnaData.questions.filter(q => !q.is_resolved).length;
+                document.getElementById('stats-qna').textContent = unresolved;
+
+                const qnaContainer = document.getElementById('recent-qna');
+                const recentUnresolved = qnaData.questions.filter(q => !q.is_resolved).slice(0, 4);
+
+                if (recentUnresolved.length > 0) {
+                    qnaContainer.innerHTML = recentUnresolved.map(q => `
+                    <div class="d-flex align-items-start mb-3 p-3 rounded" style="background:var(--bg-secondary); border:1px solid var(--border-color);">
+                        <div class="kanban-card-assignee" style="width:32px; height:32px; font-size:0.75rem; margin-right:12px;">${getInitials(q.asker_name)}</div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-bold text-truncate" style="font-size:0.9rem;">${q.title}</div>
+                            <div class="text-white text-truncate" style="font-size:0.8rem; margin-bottom:4px;">${q.course_name || 'Không có môn học'}</div>
+                            <div style="font-size:0.75rem;"><i class="far fa-clock"></i> ${timeAgo(q.created_at)} bởi ${q.asker_name}</div>
+                        </div>
+                    </div>
+                `).join('');
+                } else {
+                    qnaContainer.innerHTML = '<div class="empty-state py-3"><p class="text-white mb-0">Tuyệt vời, không có câu hỏi nào chưa giải quyết</p></div>';
+                }
+            }
+
+            const docData = await API.get('/documents');
+            if (docData && docData.documents) {
+                document.getElementById('stats-docs').textContent = docData.documents.length;
+            }
+
+            // Recent tasks
+            const tasksData = await API.get('/tasks');
+            if (tasksData && tasksData.tasks) {
+                const taskContainer = document.getElementById('recent-tasks');
+                const sortedTasks = tasksData.tasks.slice(0, 4);
+
+                if (sortedTasks.length > 0) {
+                    taskContainer.innerHTML = sortedTasks.map(t => {
+                        const assigneesCount = t.assignees ? t.assignees.length : 0;
+                        return `
+                        <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded" style="background:var(--bg-secondary); border:1px solid var(--border-color);">
+                            <div>
+                                <div class="fw-bold mb-1" style="font-size:0.9rem;">${t.title}</div>
+                                <div class="text-white" style="font-size:0.8rem;">
+                                    ${getPriorityBadge(t.priority)}
+                                    <span class="ms-2"><i class="fas fa-users me-1"></i> ${assigneesCount} người thực hiện</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                ${getStatusBadge(t.status)}
+                                <div class="text-white mt-1" style="font-size:0.75rem;">Hạn: ${t.due_date ? formatDate(t.due_date) : 'Không có'}</div>
+                            </div>
+                        </div>
+                    `;
+                    }).join('');
+                } else {
+                    taskContainer.innerHTML = '<div class="empty-state py-3"><p class="text-white mb-0">Chưa có công việc nào được giao</p></div>';
+                }
+            }
+
+        } catch (e) {
+            console.error('Error loading Teacher dashboard data', e);
+        }
+    });
+</script>
+{% endblock %}

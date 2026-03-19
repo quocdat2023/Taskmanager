@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Hệ thống quản lý công việc và giao task cho giảng viên và sinh viên">
+    <title>{% block title %}Task Management{% endblock %} | EduTask</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- FullCalendar -->
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    {% block head %}{% endblock %}
+</head>
+
+<body>
+    {% block body %}{% endblock %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- FullCalendar -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        // Sync Flask session role to sessionStorage for JS components
+        {% if session.get('user_id') %}
+        if (!sessionStorage.getItem('user_id')) {
+            sessionStorage.setItem('user_id', "{{ session.get('user_id') }}");
+            sessionStorage.setItem('role', "{{ session.get('role') }}");
+            sessionStorage.setItem('full_name', "{{ session.get('full_name') }}");
+            sessionStorage.setItem('token', "{{ session.get('token') }}");
+            sessionStorage.setItem('reminder_preference', "{{ session.get('reminder_preference', '5') }}");
+        }
+        {% endif %}
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>

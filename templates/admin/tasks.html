@@ -1,0 +1,285 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Quản lý Toàn bộ Công việc{% endblock %}
+{% block header_title %}Quản lý Hệ thống Công việc{% endblock %}
+{% block header_subtitle %}Giám sát và điều phối tất cả nhiệm vụ trong ứng dụng{% endblock %}
+
+{% block content %}
+<div class="glass-card mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <h5 class="fw-bold mb-1">Toàn bộ danh sách nhiệm vụ</h5>
+        <div class="text-muted" style="font-size:0.85rem;">Admin có quyền xem và xóa mọi công việc của giảng viên
+        </div>
+    </div>
+    <div style="display:flex; gap:12px;">
+        <div class="input-group" style="width: 300px;">
+            <input type="text" class="form-control form-control-custom border-end-0" id="admin-task-search"
+                placeholder="Tìm theo tên công việc..." onkeyup="AdminTasks.filterTasks(this.value)">
+            <button class="btn btn-outline-secondary border-start-0"
+                style="border-color:var(--border-color); background:var(--bg-input);" type="button"
+                onclick="UserManage.search()">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <button class="btn-primary-custom" onclick="UserManage.search()">
+            <i class="fas fa-sync-alt"></i> Tìm kiếm
+        </button>
+    </div>
+</div>
+
+<div class="glass-card fade-in">
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th style="width: 5%">ID</th>
+                    <th style="width: 25%">Công việc / Môn học</th>
+                    <th style="width: 15%">Người tạo</th>
+                    <th style="width: 10%">Độ ưu tiên</th>
+                    <th style="width: 15%">Trạng thái</th>
+                    <th style="width: 15%">Người thực hiện</th>
+                    <th style="width: 15%">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="admin-tasks-body">
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <div class="mt-2">Đang tải toàn bộ dữ liệu...</div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Simple Detail Modal -->
+<div class="modal fade" id="adminTaskDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Chi tiết nhiệm vụ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="adminTaskDetailContent">
+                <!-- Dynamic -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-glass" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-danger" id="admin-delete-btn">Xóa nhiệm vụ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const AdminTasks = {
+        allTasks: [],
+        pagination: {
+            page: 1,
+            perPage: 10,
+            total: 0,
+            pages: 0
+        },
+
+        async init() {
+            this.loadTasks();
+        },
+
+        async loadTasks(page = 1) {
+            const tbody = document.getElementById('admin-tasks-body');
+            this.pagination.page = page;
+            try {
+                const res = await API.get(`/tasks/all?page=${page}&per_page=${this.pagination.perPage}`);
+                if (res) {
+                    this.allTasks = res.tasks || [];
+                    this.pagination.total = res.total;
+                    this.pagination.pages = res.pages;
+                    this.renderTable(this.allTasks);
+                    this.renderPagination();
+                }
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Lỗi: ${e.message}</td></tr>`;
+            }
+        },
+
+        renderTable(tasks) {
+            const tbody = document.getElementById('admin-tasks-body');
+            if (tasks.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-5 text-muted">Hệ thống chưa có công việc nào</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = tasks.map(t => `
+            <tr class="fade-in">
+                <td class="text-muted">#${t.id}</td>
+                <td>
+                    <div class="fw-bold">${t.title}</div>
+                    <div class="text-secondary small">${t.course_name || ''} ${t.course_code ? `(${t.course_code})` : ''}</div>
+                </td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <span style="font-size:0.85rem;">${t.creator_name}</span>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge ${this.getPriorityClass(t.priority)}">${this.getPriorityLabel(t.priority)}</span>
+                </td>
+                <td>
+                    <span class="badge ${this.getStatusClass(t.status)}">${this.getStatusLabel(t.status)}</span>
+                </td>
+                <td>
+                    <div class="text-secondary small">
+                        ${t.assignees && t.assignees.length > 0
+                    ? t.assignees.map(a => a.user_name).join(', ')
+                    : 'Chưa giao'}
+                    </div>
+                </td>
+                <td>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-glass px-2" onclick="AdminTasks.showDetail(${t.id})">
+                             <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger px-2" onclick="AdminTasks.deleteTask(${t.id})">
+                             <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+        },
+
+        renderPagination() {
+            let container = document.getElementById('admin-tasks-pagination');
+            if (!container) {
+                const tableCard = document.querySelector('.table-responsive').parentNode;
+                container = document.createElement('div');
+                container.id = 'admin-tasks-pagination';
+                container.className = 'd-flex justify-content-between align-items-center mt-3 px-3';
+                tableCard.appendChild(container);
+            }
+
+            const { page, pages, total } = this.pagination;
+            if (total === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = `
+                <div class="text-muted" style="font-size: 0.85rem;">
+                    Hiển thị <strong>${(page - 1) * this.pagination.perPage + 1}</strong>-<strong>${Math.min(page * this.pagination.perPage, total)}</strong> / <strong>${total}</strong>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item ${page === 1 ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="AdminTasks.loadTasks(${page - 1})"><i class="fas fa-chevron-left"></i></a>
+                        </li>
+            `;
+
+            for (let i = 1; i <= pages; i++) {
+                if (i === 1 || i === pages || (i >= page - 2 && i <= page + 2)) {
+                    html += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" onclick="AdminTasks.loadTasks(${i})">${i}</a></li>`;
+                } else if (i === page - 3 || i === page + 3) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            html += `
+                        <li class="page-item ${page === pages ? 'disabled' : ''}">
+                            <a class="page-link" href="#" onclick="AdminTasks.loadTasks(${page + 1})"><i class="fas fa-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            `;
+            container.innerHTML = html;
+        },
+
+        getPriorityClass(p) {
+            switch (p) {
+                case 'urgent': return 'bg-danger';
+                case 'high': return 'bg-warning text-dark';
+                case 'low': return 'bg-info text-dark';
+                default: return 'bg-primary';
+            }
+        },
+        getPriorityLabel(p) {
+            const labels = { urgent: 'Khẩn cấp', high: 'Cao', medium: 'Trung bình', low: 'Thấp' };
+            return labels[p] || p;
+        },
+        getStatusClass(s) {
+            switch (s) {
+                case 'done': return 'bg-success';
+                case 'in_progress': return 'bg-warning text-dark';
+                default: return 'bg-secondary';
+            }
+        },
+        getStatusLabel(s) {
+            const labels = { done: 'Hoàn tất', in_progress: 'Đang làm', todo: 'Chờ làm' };
+            return labels[s] || s;
+        },
+
+        filterTasks(query) {
+            // Client side filter still useful but with server pagination it might need server search
+            const filtered = this.allTasks.filter(t =>
+                t.title.toLowerCase().includes(query.toLowerCase()) ||
+                (t.creator_name && t.creator_name.toLowerCase().includes(query.toLowerCase())) ||
+                (t.course_name && t.course_name.toLowerCase().includes(query.toLowerCase()))
+            );
+            this.renderTable(filtered);
+        },
+
+        async showDetail(id) {
+            const t = this.allTasks.find(task => task.id === id);
+            if (!t) return;
+
+            const content = document.getElementById('adminTaskDetailContent');
+            content.innerHTML = `
+            <div class="mb-3">
+                <label class="text-primary small fw-bold">TIÊU ĐỀ</label>
+                <div class="fs-5 fw-bold">${t.title}</div>
+            </div>
+            <div class="mb-3">
+                <label class="text-primary small fw-bold">MÔ TẢ</label>
+                <div class="text-secondary">${t.description || 'Không có mô tả'}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label class="text-primary small fw-bold">NGƯỜI TẠO</label>
+                    <div>${t.creator_name}</div>
+                </div>
+                <div class="col-6">
+                    <label class="text-primary small fw-bold">HẠN CUỐI</label>
+                    <div>${t.due_date ? new Date(t.due_date).toLocaleDateString('vi-VN') : '—'}</div>
+                </div>
+            </div>
+            <div>
+                 <label class="text-primary small fw-bold">DANH SÁCH THỰC HIỆN</label>
+                 <ul class="list-unstyled">
+                    ${t.assignees.map(a => `<li><i class="fas fa-user-check me-2 text-success"></i>${a.user_name}</li>`).join('')}
+                 </ul>
+            </div>
+        `;
+
+            document.getElementById('admin-delete-btn').onclick = () => this.deleteTask(id);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('adminTaskDetailModal')).show();
+        },
+
+        async deleteTask(id) {
+            if (!confirm('Bạn có chắc muốn xóa vĩnh viễn công việc này không?')) return;
+            try {
+                await API.delete(`/tasks/${id}`);
+                Toast.success('Đã xóa công việc');
+                bootstrap.Modal.getInstance(document.getElementById('adminTaskDetailModal'))?.hide();
+                this.loadTasks(this.pagination.page);
+            } catch (e) {
+                Toast.error('Không thể xóa công việc');
+            }
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => AdminTasks.init());
+</script>
+{% endblock %}

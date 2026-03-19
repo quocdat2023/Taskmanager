@@ -1,0 +1,141 @@
+{% extends "qna/layout.html" %}
+
+{% block title %}Hỏi đáp (Q&A){% endblock %}
+{% block header_title %}Diễn đàn Thảo luận{% endblock %}
+{% block header_subtitle %}Giải đáp thắc mắc liên quan đến môn học và bài giảng{% endblock %}
+
+{% block content %}
+<!-- Search & Header Hero -->
+<div class="glass-card mb-4 overflow-hidden border-0" style="background: linear-gradient(135deg, rgba(237, 42, 38, 0.05), rgba(108, 92, 231, 0.05));">
+    <div class="row align-items-center p-4">
+        <div class="col-lg-7">
+            <h4 class="fw-bold mb-2">Xin chào, chúng tôi có thể giúp gì cho bạn?</h4>
+            <p class="text-muted small mb-4">Tìm kiếm câu trả lời từ cộng đồng hoặc đặt câu hỏi mới cho giảng viên.</p>
+            <div class="search-input-wrapper position-relative">
+                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                <input type="text" class="form-control-custom ps-5 py-3 shadow-none border-0" 
+                       id="qna-search" placeholder="Nhập từ khóa tìm kiếm câu hỏi..."
+                       onkeyup="QnA.handleSearch(event)">
+            </div>
+        </div>
+        <div class="col-lg-5 text-lg-end mt-4 mt-lg-0">
+            <button class="btn-primary-custom px-4 py-2" onclick="QnA.showCreateModal()">
+                <i class="fas fa-plus-circle me-2"></i> Đặt câu hỏi mới
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Filters & Main List -->
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div class="d-flex gap-2 bg-white bg-opacity-50 p-1 rounded-pill border border-white" style="backdrop-filter: blur(10px);">
+                <button class="btn btn-sm rounded-pill px-3 py-1 qna-filter active" onclick="QnA.setFilter('all', this)">Tất cả</button>
+                <button class="btn btn-sm rounded-pill px-3 py-1 qna-filter" onclick="QnA.setFilter('unresolved', this)">Chưa giải quyết</button>
+                <button class="btn btn-sm rounded-pill px-3 py-1 qna-filter" onclick="QnA.setFilter('mine', this)">Câu hỏi của tôi</button>
+            </div>
+            <div class="text-muted small" id="qna-count">Đang tải...</div>
+        </div>
+
+        <div id="qna-list">
+            <!-- Injected via JS -->
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary opacity-25" role="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Widgets -->
+    <div class="col-lg-4">
+        <div class="glass-card mb-4">
+            <h6 class="fw-bold mb-3 border-bottom pb-2">Thống kê diễn đàn</h6>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-secondary small">Tổng số câu hỏi:</span>
+                <span class="fw-bold small" id="stat-total-q">0</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-secondary small">Đã giải quyết:</span>
+                <span class="text-success fw-bold small" id="stat-resolved-q">0</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-secondary small">Tỷ lệ trả lời:</span>
+                <span class="text-primary fw-bold small" id="stat-ratio-q">0%</span>
+            </div>
+        </div>
+
+        <div class="glass-card mb-4">
+            <h6 class="fw-bold mb-3 border-bottom pb-2">Môn học phổ biến</h6>
+            <div id="popular-courses" class="d-flex flex-wrap gap-2">
+                <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 py-2 px-3 fw-normal">Đang tải...</span>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <h6 class="fw-bold mb-3 border-bottom pb-2">Hướng dẫn đặt câu hỏi</h6>
+            <ul class="list-unstyled small text-secondary mb-0">
+                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Tiêu đề ngắn gọn, súc tích</li>
+                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Nội dung mô tả rõ ràng vấn đề</li>
+                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Ghi đúng tên môn học/mã lớp</li>
+                <li><i class="fas fa-check-circle text-success me-2"></i>Đọc kỹ quy tắc ứng xử diễn đàn</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .qna-filter.active {
+        background: var(--primary);
+        color: white !important;
+        box-shadow: 0 4px 10px var(--primary-glow);
+    }
+    .qna-filter:not(.active) {
+        color: var(--text-secondary);
+    }
+</style>
+
+<!-- Create Question Modal -->
+<div class="modal fade" id="questionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title">Đặt câu hỏi mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="questionForm" onsubmit="QnA.submitQuestion(event)">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-custom">Tiêu đề câu hỏi <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control-custom" id="question-title" required placeholder="Tóm tắt rõ ràng nội dung cần hỏi">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label-custom">Nội dung chi tiết <span class="text-danger">*</span></label>
+                        <textarea class="form-control-custom" id="question-content" rows="6" required placeholder="Trình bày chi tiết vấn đề bạn đang gặp phải, có thể cung cấp thêm ngữ cảnh bài học..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">Liên quan đến môn học (Tùy chọn)</label>
+                            <input type="text" class="form-control-custom" id="question-course" placeholder="VD: Toán rời rạc">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom"><i class="fas fa-paper-plane me-2"></i>Gửi câu hỏi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/qna.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        QnA.init();
+    });
+</script>
+{% endblock %}

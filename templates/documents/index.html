@@ -1,0 +1,122 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Quản lý Tài liệu{% endblock %}
+{% block header_title %}Thư viện học liệu{% endblock %}
+{% block header_subtitle %}Khám phá thư viện tài liệu của các môn học{% endblock %}
+
+{% block content %}
+<div class="glass-card mb-4 mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-0">
+        <div>
+            <h5 class="fw-bold"><i class="fas fa-folder-open me-2 text-warning"></i>Tài liệu Môn học</h5>
+            <div class="text-white" style="font-size:0.85rem;">Tìm kiếm và tải về tài liệu phục vụ giảng dạy và nghiên
+                cứu</div>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 300px;">
+                <input type="text" id="doc-search" class="form-control form-control-custom border-end-0"
+                    placeholder="Tìm tên tài liệu, môn học..." onkeyup="if(event.key==='Enter') Documents.search()">
+                <button class="btn btn-outline-secondary border-start-0"
+                    style="border-color:var(--border-color); background:var(--bg-input);" type="button"
+                    onclick="Documents.search()">
+                    <i class="fas fa-search text-white"></i>
+                </button>
+            </div>
+
+            {% if session.get('role') in ['admin', 'teacher'] %}
+            <button class="btn-primary-custom" onclick="Documents.showUploadModal()">
+                <i class="fas fa-cloud-upload-alt me-2"></i> Tải tài liệu
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row fade-in">
+    <div class="col-12" id="documents-list">
+        <!-- Spinner -->
+        <div class="text-center py-5 text-white">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2 text-sm">Đang tải thư viện...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title"><i class="fas fa-file-upload me-2 text-primary"></i>Tải lên Học liệu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="uploadForm" onsubmit="Documents.submitUpload(event)" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label-custom">Chọn File <span class="text-danger">*</span></label>
+                        <input class="form-control form-control-custom bg-transparent" type="file" id="file" name="file"
+                            required>
+                        <div class="form-text mt-1 text-white" style="font-size:0.75rem;">(PDF, DOCX, XLSX, PPTX, JPG,
+                            ... Tối đa 16MB)</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-custom">Tiêu đề tài liệu <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control-custom" id="title" name="title" required
+                            placeholder="Nhập tên dễ nhớ cho tài liệu">
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">Danh mục</label>
+                            <select class="form-control-custom" id="category" name="category">
+                                <option value="lecture">Bài giảng</option>
+                                <option value="assignment">Bài tập</option>
+                                <option value="reference">Tài liệu tham khảo</option>
+                                <option value="general" selected>Khác</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label-custom">Mô tả thêm</label>
+                            <input type="text" class="form-control-custom" id="description" name="description">
+                        </div>
+                    </div>
+
+                    <h6 class="border-top border-secondary pt-3 fw-bold" style="font-size:0.9rem;">Thông tin Môn học
+                        (Tùy chọn)</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control-custom" id="course_name" name="course_name"
+                                placeholder="Tên môn học">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control-custom" id="course_code" name="course_code"
+                                placeholder="Mã môn">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control-custom" id="class_group" name="class_group"
+                                placeholder="Nhóm lớp">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="submit" class="btn-primary-custom"><i class="fas fa-upload me-2"></i>Bắt đầu tải
+                        lên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/documents.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        Documents.init();
+    });
+</script>
+{% endblock %}

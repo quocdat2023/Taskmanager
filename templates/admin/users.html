@@ -1,0 +1,129 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Quản lý người dùng{% endblock %}
+{% block header_title %}Quản lý người dùng{% endblock %}
+{% block header_subtitle %}Điều chỉnh thông tin và quyền hạn tài khoản{% endblock %}
+
+
+
+{% block content %}
+<div class="glass-card mb-4" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+        <h5 class="fw-bold mb-0">Danh sách tài khoản</h5>
+        <div class="text-muted" style="font-size:0.85rem;">Quản lý giảng viên, sinh viên và phân quyền</div>
+    </div>
+    <div style="display:flex; gap:12px;">
+        <div class="input-group" style="width: 300px;">
+            <input type="text" id="user-search" class="form-control form-control-custom border-end-0"
+                placeholder="Tìm tên, email, MSV..." onkeyup="UserManage.search(this.value)">
+            <button class="btn btn-outline-secondary border-start-0"
+                style="border-color:var(--border-color); background:var(--bg-input);" type="button"
+                onclick="UserManage.search()">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+
+        <button class="btn-primary-custom" onclick="UserManage.showCreateModal()">
+            <i class="fas fa-user-plus"></i> Thêm người dùng
+        </button>
+    </div>
+</div>
+
+<div class="glass-card fade-in">
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Người dùng</th>
+                    <th>Vai trò</th>
+                    <th>Khoa / Phòng ban</th>
+                    <th>Thông tin thêm</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="users-table-body">
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalLabel">Thêm người dùng mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="userForm" onsubmit="UserManage.submitForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="manage-user-id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Tên đăng nhập <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-custom" id="manage-username" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control-custom" id="manage-email" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-custom" id="manage-full-name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Vai trò <span class="text-danger">*</span></label>
+                            <select class="form-control-custom" id="manage-role" onchange="UserManage.onRoleChange()">
+                                <option value="student">Sinh viên</option>
+                                <option value="teacher">Giảng viên</option>
+                                <option value="admin">Quản trị viên</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Mật khẩu (Để trống nếu không đổi)</label>
+                            <input type="password" class="form-control-custom" id="manage-password"
+                                placeholder="Mặc định: 123456">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Số điện thoại</label>
+                            <input type="text" class="form-control-custom" id="manage-phone">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Khoa / Bộ môn</label>
+                            <input type="text" class="form-control-custom" id="manage-department">
+                        </div>
+                        <div class="col-md-6" id="student-id-container">
+                            <label class="form-label-custom">Mã sinh viên</label>
+                            <input type="text" class="form-control-custom" id="manage-student-id">
+                            <div class="col-md-12">
+                                <label class="form-label-custom">Mốc nhắc hẹn mặc định (Phút, cách nhau bởi dấu
+                                    phẩy)</label>
+                                <input type="text" class="form-control-custom" id="manage-reminder-pref"
+                                    placeholder="Ví dụ: 5,15,60">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn-primary-custom">Lưu thông tin</button>
+                    </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/users.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        UserManage.init();
+    });
+</script>
+{% endblock %}

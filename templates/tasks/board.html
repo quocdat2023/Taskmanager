@@ -1,0 +1,230 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Kanban Board{% endblock %}
+{% block header_title %}Bảng Công việc{% endblock %}
+{% block header_subtitle %}Kéo thả để cập nhật trạng thái{% endblock %}
+
+{% block content %}
+<div class="glass-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h5 class="fw-bold mb-0">Kanban Board</h5>
+            <div class="text-whited" style="font-size:0.85rem;">Trực quan hóa tiến độ công việc</div>
+        </div>
+        <div style="display:flex; gap:12px;">
+            <a href="{{ url_for('pages.tasks_page') }}" class="btn-glass">
+                <i class="fas fa-list"></i> Chuyển sang Dạng bảng
+            </a>
+            {% if session.get('role') in ['admin', 'teacher'] %}
+            <button class="btn-primary-custom" onclick="Tasks.showCreateModal()">
+                <i class="fas fa-plus"></i> Tạo công việc
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3 border-top pt-3" style="border-color:var(--border-color)!important;">
+        <div class="col-md-3">
+            <label class="form-label-custom">Học kỳ</label>
+            <select class="form-control-custom py-1" id="filter-semester" onchange="Tasks.loadTasks()">
+                <option value="">Tất cả học kỳ</option>
+                <option value="HK1">Học kỳ 1</option>
+                <option value="HK2">Học kỳ 2</option>
+                <option value="HK3">Học kỳ 3</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label-custom">Năm học</label>
+            <select class="form-control-custom py-1" id="filter-year" onchange="Tasks.loadTasks()">
+                <option value="">Tất cả năm học</option>
+                <!-- Populated dynamically by Tasks.loadAcademicYears() -->
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="kanban-board fade-in" id="kanban-board">
+    <!-- Cột Chưa bắt đầu -->
+    <div class="kanban-column">
+        <div class="kanban-header">
+            <span class="kanban-header-title">
+                <i class="fas fa-circle" style="color:var(--status-todo);"></i> Chưa bắt đầu
+            </span>
+            <span class="kanban-header-count" id="count-todo">0</span>
+        </div>
+        <div class="kanban-body" id="kanban-todo" data-status="todo">
+            <!-- Tasks injected via JS -->
+            <div class="spinner-border text-primary mx-auto d-block mt-4" role="status"></div>
+        </div>
+    </div>
+
+    <!-- Cột Đang làm -->
+    <div class="kanban-column">
+        <div class="kanban-header">
+            <span class="kanban-header-title">
+                <i class="fas fa-spinner" style="color:var(--status-progress);"></i> Đang làm
+            </span>
+            <span class="kanban-header-count" id="count-in_progress">0</span>
+        </div>
+        <div class="kanban-body" id="kanban-in_progress" data-status="in_progress">
+            <!-- Tasks injected via JS -->
+        </div>
+    </div>
+
+    <!-- Cột Hoàn thành -->
+    <div class="kanban-column">
+        <div class="kanban-header">
+            <span class="kanban-header-title">
+                <i class="fas fa-check-circle" style="color:var(--status-done);"></i> Hoàn thành
+            </span>
+            <span class="kanban-header-count" id="count-done">0</span>
+        </div>
+        <div class="kanban-body" id="kanban-done" data-status="done">
+            <!-- Tasks injected via JS -->
+        </div>
+    </div>
+</div>
+
+<!-- Task Detail Modal -->
+<div class="modal fade" id="taskDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title">Chi tiết công việc</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="taskDetailBody">
+                <!-- Data populated dynamically via tasks.js -->
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn-glass" data-bs-dismiss="modal">Đóng</button>
+                {% if session.get('role') in ['admin', 'teacher'] %}
+                <!-- Thêm action edit nhanh nếu cần, demo js hiện đang trỏ detail -->
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Create/Edit Modal (reused from index.html approach) -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title" id="taskModalLabel">Thêm công việc</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="taskForm" onsubmit="Tasks.submitForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="task-id">
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Tên công việc <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control-custom" id="task-title" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Mô tả (Tùy chọn)</label>
+                            <textarea class="form-control-custom" id="task-description" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Trạng thái</label>
+                            <select class="form-control-custom" id="task-status">
+                                <option value="todo">Chưa bắt đầu</option>
+                                <option value="in_progress">Đang làm</option>
+                                <option value="done">Hoàn thành</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Độ ưu tiên</label>
+                            <select class="form-control-custom" id="task-priority">
+                                <option value="low">Thấp</option>
+                                <option value="medium" selected>Trung bình</option>
+                                <option value="high">Cao</option>
+                                <option value="urgent">Khẩn cấp</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Hạn cuối</label>
+                            <input type="date" class="form-control-custom" id="task-due-date">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-header border-top border-secondary"
+                    style="border-radius:0;background:rgba(255,255,255,0.02)">
+                    <h6 class="mb-0 fw-bold" style="font-size:0.95rem;">Môn học & Giao việc</h6>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control-custom" id="task-course-name"
+                                placeholder="Tên môn học (VD: Quản trị học)">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control-custom" id="task-course-code"
+                                placeholder="Mã môn (VD: MGT101)">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" class="form-control-custom" id="task-class-group"
+                                placeholder="Nhóm lớp (VD: N01)">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Học kỳ</label>
+                            <select class="form-control-custom" id="task-semester">
+                                <option value="">Học kỳ</option>
+                                <option value="HK1">HK 1</option>
+                                <option value="HK2">HK 2</option>
+                                <option value="HK3">HK 3</option>
+                            </select>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label-custom">Năm học</label>
+                            <select class="form-control-custom" id="task-academic-year">
+                                <option value="">Chọn năm học</option>
+                                <!-- Populated dynamically by Tasks.loadAcademicYears() -->
+                            </select>
+                        </div>
+
+                        {% if session.get('role') in ['admin', 'teacher'] %}
+                        <div class="col-md-12 mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label-custom mb-0">Người thực hiện:</label>
+                                <div class="d-flex gap-2">
+                                    <input type="text" class="form-control-custom py-1 px-2"
+                                        style="font-size:0.75rem; width:150px;" placeholder="Tìm nhanh..."
+                                        onkeyup="Tasks.filterAssignees(this.value)">
+                                    <button type="button" class="btn-glass py-1 px-2" style="font-size:0.75rem;"
+                                        onclick="Tasks.toggleAllAssignees()">Chọn tất cả</button>
+                                </div>
+                            </div>
+                            <div class="border border-secondary rounded p-3"
+                                style="max-height:200px; overflow-y:auto; background:var(--bg-input);">
+                                <div id="assignee-checkboxes">
+                                    <div class="text-whited" style="font-size:0.8rem;">Đang tải danh sách...</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/tasks.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        await Tasks.init();
+    });
+</script>
+{% endblock %}

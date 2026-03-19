@@ -1,0 +1,474 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Lịch học & Sự kiện{% endblock %}
+{% block header_title %}Quản lý Lịch học{% endblock %}
+{% block header_subtitle %}Theo dõi Lịch học và các mốc thời gian quan trọng{% endblock %}
+
+{% block content %}
+<style>
+    .schedule-filter-container {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        background: var(--bg-card, rgba(255, 255, 255, 0.05));
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+    }
+
+    .filter-item {
+        flex: 1;
+    }
+
+    .legend-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.85rem;
+        color: var(--text-primary);
+        background: var(--bg-card, rgba(255, 255, 255, 0.05));
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--glass-border);
+    }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 8px;
+    }
+
+    .main-wrapper {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        align-items: stretch;
+    }
+
+    .calendar-col {
+        flex: 1 1 70%;
+        min-width: 60%;
+        background: var(--bg-card, rgba(255, 255, 255, 0.05));
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+    }
+
+    .sidebar-col {
+        flex: 0 0 300px;
+        background: var(--bg-card, rgba(255, 255, 255, 0.05));
+        padding: 20px;
+        border-radius: 8px;
+        border: 1px solid var(--glass-border);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .course-group-list {
+        margin-top: 15px;
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .course-item {
+        font-size: 0.85rem;
+        padding: 12px 10px;
+        border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+        color: var(--text-primary);
+        transition: background 0.2s;
+        cursor: pointer;
+    }
+
+    .course-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .course-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Outer wrapper (padding/background giống ảnh) */
+    .schedule-filter-wrapper {
+        padding: 12px;
+        /* nếu cần khoảng cách ngoài */
+    }
+
+    /* Container chia 3 cột ngang đều nhau */
+    .schedule-filter-container {
+        display: flex;
+        gap: 20px;
+        /* khoảng giữa các cột */
+        align-items: center;
+        flex-wrap: nowrap;
+        /* desktop không xuống dòng */
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+        /* tùy chỉnh */
+    }
+
+    /* Mỗi filter-item chiếm đúng 1/3 - trừ tổng gap */
+    .schedule-filter-container .filter-item {
+        flex: 0 0 calc((100% - 2 * 20px) / 3);
+        /* 3 cột, trừ 2 gap */
+        min-width: 0;
+        /* cực kỳ quan trọng để nội dung không bung layout */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* Label nhỏ phía trên select */
+    .form-label-custom {
+        font-size: 0.78rem;
+        color: #2b3a4a;
+        margin-bottom: 8px;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+    }
+
+    /* Style select giống ảnh (nền nhạt, bo) */
+    .form-select {
+        width: 100%;
+        box-sizing: border-box;
+        height: 52px;
+        padding: 0 16px;
+        border-radius: 10px;
+        background: #f3f7fa;
+        /* nền select */
+        border: 1px solid rgba(20, 30, 40, 0.06);
+        color: #0f1724;
+        font-size: 1rem;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        display: inline-block;
+    }
+
+    /* Đảm bảo icon arrow không phá layout (nếu dùng custom) */
+    .form-select::-ms-expand {
+        display: none;
+    }
+
+    /* Button group là 1 filter-item nhưng chứa các nút ngang */
+    .schedule-filter-container .button-group {
+        justify-content: flex-end;
+        /* căn phải giống ảnh */
+        align-items: center;
+    }
+
+    /* Inner wrapper để căn giữa/hợp lệ các nút */
+    .buttons-inner {
+        display: inline-flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    /* Glass button */
+    .btn-glass {
+        height: 48px;
+        padding: 0 14px;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid rgba(20, 30, 40, 0.06);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #1f2937;
+        font-weight: 600;
+    }
+
+
+    /* Icon nhỏ và text căn giữa */
+    .btn-glass i,
+    .btn-primary-custom i {
+        font-size: 16px;
+    }
+
+    .btn-text {
+        display: inline-block;
+    }
+
+    /* Placeholder slot: giữ kích thước nhưng ẩn nội dung */
+    .placeholder-slot {
+        pointer-events: none;
+        height: 0;
+        /* không hiển thị label/select */
+    }
+
+    /* Responsive: dưới breakpoint thì cho phép xuống dòng, mỗi mục chiếm 100% */
+    @media (max-width: 880px) {
+        .schedule-filter-container {
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .schedule-filter-container .filter-item {
+            flex: 0 0 100%;
+        }
+
+        .schedule-filter-container .button-group {
+            justify-content: flex-start;
+        }
+
+        .form-select {
+            height: 46px;
+        }
+
+        .btn-glass,
+        .btn-primary-custom {
+            height: 44px;
+        }
+    }
+</style>
+
+<div class="schedule-filter-wrapper">
+    <div class="schedule-filter-container">
+        {% if session.get('role') == 'admin' %}
+        <div class="filter-item">
+            <label class="form-label-custom">GIẢNG VIÊN (GVVC)</label>
+            <select class="form-select" id="teacher-filter">
+                <option value="all">Tất cả giảng viên</option>
+            </select>
+        </div>
+        {% else %}
+        <!-- placeholder giữ chỗ 1/3 khi không phải admin -->
+        <div class="filter-item placeholder-slot" aria-hidden="true"></div>
+        {% endif %}
+
+        <div class="filter-item">
+            <label class="form-label-custom">HỌC KỲ</label>
+            <select class="form-select" id="semester-filter">
+                <option value="">Tất cả năm học / học kỳ</option>
+                <!-- Populated dynamically by Schedules.loadAcademicYears() -->
+            </select>
+        </div>
+
+        <div class="filter-item button-group">
+            <div class="buttons-inner">
+                <button class="btn-glass mt-4" onclick="Schedules.showListModal()">
+                    <i class="fas fa-list"></i>
+                    <span class="btn-text">Tất cả</span>
+                </button>
+
+                {% if session.get('role') in ['admin', 'teacher'] %}
+                <button class="btn-primary-custom" onclick="Schedules.showCreateModal()">
+                    <i class="fas fa-plus"></i>
+                    Thêm mới
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="legend-container">
+    <div class="legend-item">
+        <div class="legend-dot" style="background: #f1c40f;"></div> Dạy chính
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background: #3498db;"></div> Dạy bù
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background: #9b59b6;"></div> Sinh hoạt chủ nhiệm
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background: #e74c3c;"></div> Đã báo vắng
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background: #2ecc71;"></div> Dạy thay
+    </div>
+    <div class="legend-item">
+        <div class="legend-dot" style="background: #1abc9c;"></div> Sự kiện khác
+    </div>
+</div>
+
+<div class="main-wrapper">
+    <div class="row">
+        <div class="col-12">
+            <div class="calendar-col">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event List Modal -->
+<div class="modal fade" id="eventListModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title"><i class="fas fa-list me-2 text-primary"></i>Danh sách sự kiện</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="search-container mb-3" style="position: relative;">
+                    <input type="text" class="form-control-custom w-100" placeholder="Tìm kiếm sự kiện..."
+                        id="modal-course-search">
+                    <i class="fas fa-search" style="position: absolute; right: 10px; top: 12px; color: #aaa;"></i>
+                </div>
+                <div class="course-group-list" id="modal-list-content" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary">
+                <button type="button" class="btn-glass" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+<!-- Schedule Create/Edit Modal -->
+<div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title" id="scheduleModalLabel">Thêm lịch giảng dạy</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="scheduleForm" onsubmit="Schedules.submitForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="schedule-id">
+
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Tên môn học / Sự kiện <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" class="form-control-custom" id="schedule-title" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Loại giảng dạy/Sự kiện <span
+                                    class="text-danger">*</span></label>
+                            <select class="form-control-custom" id="schedule-type" required>
+                                <option value="main">Dạy chính</option>
+                                <option value="makeup">Dạy bù</option>
+                                <option value="homeroom">Sinh hoạt chủ nhiệm</option>
+                                <option value="absent">Đã báo vắng</option>
+                                <option value="substitute">Dạy thay</option>
+                                <option value="other">Sự kiện khác</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Mã phòng học</label>
+                            <input type="text" class="form-control-custom" id="schedule-location"
+                                placeholder="VD: B303">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Bắt đầu <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control-custom" id="schedule-start" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Kết thúc <span class="text-danger">*</span></label>
+                            <input type="datetime-local" class="form-control-custom" id="schedule-end" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Mã học phần</label>
+                            <input type="text" class="form-control-custom" id="schedule-course-code">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Tên học phần</label>
+                            <input type="text" class="form-control-custom" id="schedule-course-name">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-custom">Nhóm lớp</label>
+                            <input type="text" class="form-control-custom" id="schedule-class-group">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Mô tả thêm</label>
+                            <textarea class="form-control-custom" id="schedule-description" rows="2"></textarea>
+                        </div>
+
+                        <div class="col-md-12 border-top border-secondary pt-3 mt-3">
+                            <label class="form-label-custom text-primary"><i class="fas fa-bell me-2"></i>Nhắc nhở qua
+                                Email</label>
+                            <div class="d-flex flex-wrap gap-3 mt-2" id="reminder-options">
+                                <label class="reminder-chip">
+                                    <input type="checkbox" value="5" class="reminder-check d-none" id="rem-5m" checked>
+                                    <span class="chip-label">5 Phút</span>
+                                </label>
+                                <label class="reminder-chip">
+                                    <input type="checkbox" value="15" class="reminder-check d-none" id="rem-15m">
+                                    <span class="chip-label">15 Phút</span>
+                                </label>
+                                <label class="reminder-chip">
+                                    <input type="checkbox" value="60" class="reminder-check d-none" id="rem-1h">
+                                    <span class="chip-label">1 Giờ</span>
+                                </label>
+                                <label class="reminder-chip">
+                                    <input type="checkbox" value="1440" class="reminder-check d-none" id="rem-1d">
+                                    <span class="chip-label">1 Ngày</span>
+                                </label>
+                                <label class="reminder-chip">
+                                    <input type="checkbox" value="10080" class="reminder-check d-none" id="rem-1w">
+                                    <span class="chip-label">1 Tuần</span>
+                                </label>
+                            </div>
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-link p-0 text-decoration-none"
+                                    onclick="Schedules.suggestReminders()"
+                                    style="font-size: 0.75rem; color: var(--accent-cyan);">
+                                    <i class="fas fa-magic me-1"></i> Gợi ý cấu hình nhắc (AI/Context)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer border-top border-secondary">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom">Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Schedule Detail Modal -->
+<div class="modal fade" id="scheduleDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom border-secondary">
+                <h5 class="modal-title"><i class="fas fa-info-circle me-2 text-primary"></i>Chi tiết lịch học</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="scheduleDetailBody">
+                <!-- Content injected dynamically -->
+            </div>
+            <div class="modal-footer border-top border-secondary" id="scheduleDetailFooter">
+                <button type="button" class="btn-glass" data-bs-dismiss="modal">Đóng</button>
+                {% if session.get('role') in ['admin', 'teacher'] %}
+                <button type="button" class="btn-primary-custom" id="btn-edit-schedule">Sửa</button>
+                <button type="button" class="btn-danger" id="btn-delete-schedule">Xóa</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/schedules.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        Schedules.init();
+    });
+</script>
+{% endblock %}

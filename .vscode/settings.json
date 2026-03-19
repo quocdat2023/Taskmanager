@@ -1,0 +1,6 @@
+{
+    "python.defaultInterpreterPath": "C:\\Users\\quocd\\AppData\\Local\\Programs\\Python\\Python38\\python.exe",
+    "python.analysis.extraPaths": [
+        "."
+    ]
+}

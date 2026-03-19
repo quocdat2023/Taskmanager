@@ -1,0 +1,456 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Cài đặt tài khoản{% endblock %}
+{% block header_title %}Cài đặt &amp; Cá nhân hóa{% endblock %}
+{% block header_subtitle %}Điều chỉnh thông tin, tùy chọn nhắc hẹn và quản lý năm học{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-md-8">
+
+        <!-- ===================== PERSONAL SETTINGS ===================== -->
+        <div class="glass-card fade-in mb-4">
+            <h5 class="fw-bold mb-4"><i class="fas fa-user-cog me-2 text-primary"></i>Cài đặt tài khoản</h5>
+
+            <form id="settingsForm" onsubmit="updateSettings(event)">
+                <div class="mb-4">
+                    <label class="form-label-custom text-primary d-block mb-2">
+                        <i class="fas fa-bell me-2"></i>Mốc nhắc hẹn mặc định
+                    </label>
+                    <p class="text-white small mb-3">
+                        Hệ thống sẽ tự động chọn các mốc này mỗi khi bạn tạo lịch mới.
+                    </p>
+                    
+                    <div class="d-flex flex-wrap gap-3 mt-2" id="pref-reminder-options">
+                        {% set current_prefs = session.get('reminder_preference', '5').split(',') %}
+                        <label class="reminder-chip">
+                            <input type="checkbox" value="5" class="pref-reminder-check d-none" {% if '5' in current_prefs %}checked{% endif %}>
+                            <span class="chip-label">5 Phút</span>
+                        </label>
+                        <label class="reminder-chip">
+                            <input type="checkbox" value="15" class="pref-reminder-check d-none" {% if '15' in current_prefs %}checked{% endif %}>
+                            <span class="chip-label">15 Phút</span>
+                        </label>
+                        <label class="reminder-chip">
+                            <input type="checkbox" value="60" class="pref-reminder-check d-none" {% if '60' in current_prefs %}checked{% endif %}>
+                            <span class="chip-label">1 Giờ</span>
+                        </label>
+                        <label class="reminder-chip">
+                            <input type="checkbox" value="1440" class="pref-reminder-check d-none" {% if '1440' in current_prefs %}checked{% endif %}>
+                            <span class="chip-label">1 Ngày</span>
+                        </label>
+                        <label class="reminder-chip">
+                            <input type="checkbox" value="10080" class="pref-reminder-check d-none" {% if '10080' in current_prefs %}checked{% endif %}>
+                            <span class="chip-label">1 Tuần</span>
+                        </label>
+                    </div>
+                </div>
+
+                <hr class="my-4 border-secondary opacity-25">
+
+                <h5 class="fw-bold mb-4">Thông tin cá nhân</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Họ và tên</label>
+                        <input type="text" class="form-control-custom" id="pref-fullname"
+                            value="{{ session.get('full_name') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-custom">Số điện thoại</label>
+                        <input type="text" class="form-control-custom" id="pref-phone"
+                            value="{{ session.get('phone', '') }}">
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label-custom">Khoa / Phòng ban</label>
+                        <input type="text" class="form-control-custom" id="pref-dept"
+                            value="{{ session.get('department', '') }}">
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <button type="submit" class="btn-primary-custom">
+                        <i class="fas fa-save me-2"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ===================== ACADEMIC YEAR MANAGEMENT (Admin only) ===================== -->
+        {% if session.get('role') == 'admin' %}
+        <div class="glass-card fade-in" id="academic-year-section">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h5 class="fw-bold mb-1"><i class="fas fa-calendar-alt me-2 text-warning"></i>Quản lý Năm học</h5>
+                    <p class="text-secondary small mb-0">Tạo và quản lý các năm học cho toàn hệ thống</p>
+                </div>
+                <button class="btn-primary-custom btn-sm" onclick="AcademicYear.showCreateModal()">
+                    <i class="fas fa-plus me-1"></i> Thêm năm học
+                </button>
+            </div>
+
+            <!-- Active year banner -->
+            <div id="active-year-banner" class="mb-4" style="display:none;">
+                <div class="d-flex align-items-center gap-3 p-3 rounded-3"
+                    style="background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.15)); border: 1px solid rgba(245,158,11,0.3);">
+                    <div style="font-size:2rem;">🎓</div>
+                    <div>
+                        <div class="fw-bold text-warning" style="font-size:1.1rem;" id="active-year-name">—</div>
+                        <div class="text-secondary small">Năm học đang hoạt động trên toàn hệ thống</div>
+                    </div>
+                    <div class="ms-auto">
+                        <span class="badge" style="background:rgba(245,158,11,0.25); color:#f59e0b; padding:0.4em 0.9em; border-radius:20px;">
+                            <i class="fas fa-circle text-warning me-1" style="font-size:0.5rem;"></i> Đang hoạt động
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Year list table -->
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Năm học</th>
+                            <th>Mô tả</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="academic-year-table">
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="spinner-border text-warning" role="status" style="width:1.5rem;height:1.5rem;"></div>
+                                <div class="mt-2 text-muted small">Đang tải...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- ===================== SIDEBAR ===================== -->
+    <div class="col-md-4">
+        <div class="glass-card mb-4 text-center">
+            <div class="sidebar-user-avatar mx-auto mb-3" style="width: 80px; height: 80px; font-size: 2rem;">
+                {{ session.get('full_name', '?')[:2] | upper }}
+            </div>
+            <h5 class="fw-bold mb-1">{{ session.get('full_name') }}</h5>
+            <div class="badge bg-primary mb-3">{{ session.get('role') | upper }}</div>
+            <p class="text-white small">Tài khoản: @{{ session.get('username') }}</p>
+        </div>
+
+        {% if session.get('role') == 'admin' %}
+        <div class="glass-card mb-4" style="border-left: 3px solid #f59e0b;">
+            <h6 class="fw-bold text-warning mb-3"><i class="fas fa-calendar-check me-2"></i>Năm học hiện tại</h6>
+            <div id="sidebar-active-year" class="text-center py-2">
+                <div class="spinner-border text-warning" role="status" style="width:1.2rem;height:1.2rem;"></div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="glass-card border-info">
+            <h6 class="fw-bold text-info"><i class="fas fa-info-circle me-2"></i>Hướng dẫn</h6>
+            <p class="text-secondary small mb-0">
+                Lưu ý: Các thay đổi về mốc nhắc hẹn sẽ chỉ áp dụng cho <strong>các lịch tạo mới</strong>.
+                Các lịch cũ đã tạo sẽ giữ nguyên cấu hình nhắc hẹn ban đầu của chúng.
+            </p>
+            {% if session.get('role') == 'admin' %}
+            <hr class="border-secondary opacity-25">
+            <p class="text-secondary small mb-0">
+                Năm học được chọn <strong>đang hoạt động</strong> sẽ được dùng làm giá trị mặc định
+                khi tạo công việc, lịch học mới trong toàn hệ thống.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- ===================== ACADEMIC YEAR MODAL ===================== -->
+{% if session.get('role') == 'admin' %}
+<div class="modal fade" id="academicYearModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="academicYearModalLabel">
+                    <i class="fas fa-calendar-plus me-2 text-warning"></i>Thêm năm học mới
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="academicYearForm" onsubmit="AcademicYear.submitForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="ay-id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Năm bắt đầu <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control-custom" id="ay-start-year"
+                                placeholder="VD: 2025" min="2000" max="2100" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Năm kết thúc <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control-custom" id="ay-end-year"
+                                placeholder="VD: 2026" min="2001" max="2101" readonly
+                                style="background: rgba(255,255,255,0.05); cursor: not-allowed;">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Mô tả (tùy chọn)</label>
+                            <input type="text" class="form-control-custom" id="ay-description"
+                                placeholder="VD: Năm học chính thức 2025-2026">
+                        </div>
+                        <div class="col-md-12">
+                            <div class="d-flex align-items-center gap-3 p-3 rounded-3"
+                                style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);">
+                                <div class="form-check form-switch mb-0" style="margin-left:0;">
+                                    <input class="form-check-input" type="checkbox" id="ay-is-active"
+                                        style="width:2.5em; height:1.3em; cursor:pointer;">
+                                    <label class="form-check-label ms-2 fw-semibold text-warning" for="ay-is-active">
+                                        Đặt làm năm học hiện tại
+                                    </label>
+                                </div>
+                            </div>
+                            <small class="text-secondary d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Chỉ một năm học có thể đang hoạt động tại một thời điểm.
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom" id="ay-submit-btn">
+                        <i class="fas fa-plus me-1"></i> Tạo năm học
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ===================== PERSONAL SETTINGS =====================
+    async function updateSettings(e) {
+        e.preventDefault();
+        
+        const selectedReminders = [];
+        document.querySelectorAll('.pref-reminder-check:checked').forEach(cb => {
+            selectedReminders.push(cb.value);
+        });
+
+        const payload = {
+            reminder_preference: selectedReminders.join(','),
+            full_name: document.getElementById('pref-fullname').value,
+            phone: document.getElementById('pref-phone').value,
+            department: document.getElementById('pref-dept').value
+        };
+
+        try {
+            const res = await API.put('/settings', payload);
+            Toast.success('Đã cập nhật cài đặt thành công!');
+            sessionStorage.setItem('reminder_preference', payload.reminder_preference);
+            sessionStorage.setItem('full_name', payload.full_name);
+            setTimeout(() => location.reload(), 1000);
+        } catch (error) {
+            Toast.error(error.message || 'Lỗi khi cập nhật cài đặt');
+        }
+    }
+
+    // ===================== ACADEMIC YEAR MANAGEMENT =====================
+    window.AcademicYear = {
+        modal: null,
+        bsModal: null,
+
+        init() {
+            const modalEl = document.getElementById('academicYearModal');
+            if (modalEl) {
+                this.bsModal = new bootstrap.Modal(modalEl);
+            }
+            // Auto-fill end year when start year changes
+            const startInput = document.getElementById('ay-start-year');
+            if (startInput) {
+                startInput.addEventListener('input', () => {
+                    const val = parseInt(startInput.value);
+                    const endInput = document.getElementById('ay-end-year');
+                    if (!isNaN(val) && val > 2000) {
+                        endInput.value = val + 1;
+                    } else {
+                        endInput.value = '';
+                    }
+                });
+            }
+            this.loadYears();
+        },
+
+        async loadYears() {
+            try {
+                const data = await API.get('/academic-years');
+                const years = data.academic_years || [];
+                this.renderTable(years);
+                this.updateActiveBanner(years);
+                this.updateSidebar(years);
+            } catch (err) {
+                document.getElementById('academic-year-table').innerHTML = `
+                    <tr><td colspan="5" class="text-center text-danger py-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>Lỗi tải dữ liệu
+                    </td></tr>`;
+            }
+        },
+
+        renderTable(years) {
+            const tbody = document.getElementById('academic-year-table');
+            if (!tbody) return;
+            if (years.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-4">
+                    <i class="fas fa-calendar-times me-2"></i>Chưa có năm học nào. Hãy tạo mới.
+                </td></tr>`;
+                return;
+            }
+            tbody.innerHTML = years.map(y => `
+                <tr>
+                    <td>
+                        <span class="fw-bold" style="font-size:1rem;">${y.name}</span>
+                    </td>
+                    <td class="text-secondary small">${y.description || '—'}</td>
+                    <td>
+                        ${y.is_active 
+                            ? `<span class="badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:20px;padding:0.35em 0.9em;">
+                                <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Đang hoạt động</span>`
+                            : `<span class="badge" style="background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:20px;padding:0.35em 0.9em;">
+                                Không hoạt động</span>`
+                        }
+                    </td>
+                    <td class="text-secondary small">${y.created_at ? new Date(y.created_at).toLocaleDateString('vi-VN') : '—'}</td>
+                    <td>
+                        <div class="d-flex gap-2">
+                            ${!y.is_active ? `
+                            <button class="btn btn-sm" 
+                                style="background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.3);border-radius:8px;"
+                                onclick="AcademicYear.setActive(${y.id},'${y.name}')"
+                                title="Đặt làm năm học hiện tại">
+                                <i class="fas fa-check-circle"></i>
+                            </button>` : ''}
+                            <button class="btn btn-sm"
+                                style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:8px;"
+                                onclick="AcademicYear.deleteYear(${y.id},'${y.name}',${y.is_active})"
+                                title="Xóa năm học">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        },
+
+        updateActiveBanner(years) {
+            const active = years.find(y => y.is_active);
+            const banner = document.getElementById('active-year-banner');
+            const nameEl = document.getElementById('active-year-name');
+            if (active && banner && nameEl) {
+                nameEl.textContent = active.name;
+                banner.style.display = '';
+            } else if (banner) {
+                banner.style.display = 'none';
+            }
+        },
+
+        updateSidebar(years) {
+            const sidebar = document.getElementById('sidebar-active-year');
+            if (!sidebar) return;
+            const active = years.find(y => y.is_active);
+            if (active) {
+                sidebar.innerHTML = `
+                    <div class="fw-bold text-warning" style="font-size:1.4rem;">${active.name}</div>
+                    <div class="text-secondary small mt-1">${active.description || 'Năm học hiện hành'}</div>`;
+            } else {
+                sidebar.innerHTML = `<div class="text-muted small"><i class="fas fa-exclamation-triangle me-1 text-warning"></i>Chưa đặt năm học nào</div>`;
+            }
+        },
+
+        showCreateModal() {
+            document.getElementById('ay-id').value = '';
+            document.getElementById('ay-start-year').value = '';
+            document.getElementById('ay-end-year').value = '';
+            document.getElementById('ay-description').value = '';
+            document.getElementById('ay-is-active').checked = false;
+            document.getElementById('academicYearModalLabel').innerHTML = '<i class="fas fa-calendar-plus me-2 text-warning"></i>Thêm năm học mới';
+            document.getElementById('ay-submit-btn').innerHTML = '<i class="fas fa-plus me-1"></i> Tạo năm học';
+            document.getElementById('ay-start-year').removeAttribute('readonly');
+            this.bsModal.show();
+        },
+
+        async submitForm(e) {
+            e.preventDefault();
+            const startYear = parseInt(document.getElementById('ay-start-year').value);
+            const endYear = parseInt(document.getElementById('ay-end-year').value);
+            const description = document.getElementById('ay-description').value;
+            const isActive = document.getElementById('ay-is-active').checked;
+
+            if (!startYear || endYear !== startYear + 1) {
+                Toast.error('Vui lòng nhập năm bắt đầu hợp lệ');
+                return;
+            }
+
+            const btn = document.getElementById('ay-submit-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Đang lưu...';
+
+            try {
+                await API.post('/academic-years', {
+                    start_year: startYear,
+                    end_year: endYear,
+                    description: description,
+                    is_active: isActive
+                });
+                Toast.success(`Đã tạo năm học ${startYear}-${endYear} thành công!`);
+                this.bsModal.hide();
+                this.loadYears();
+            } catch (err) {
+                Toast.error(err.message || 'Lỗi khi tạo năm học');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus me-1"></i> Tạo năm học';
+            }
+        },
+
+        async setActive(id, name) {
+            if (!confirm(`Đặt "${name}" làm năm học hiện tại?\nToàn bộ hệ thống sẽ dùng năm học này làm mặc định.`)) return;
+            try {
+                await API.put(`/academic-years/${id}/set-active`, {});
+                Toast.success(`Đã đặt ${name} là năm học hiện tại!`);
+                await this.loadYears();
+            } catch (err) {
+                console.error('Set Active Error:', err);
+                Toast.error(err.message || 'Lỗi cập nhật');
+            }
+        },
+
+        async deleteYear(id, name, isActive) {
+            if (isActive) {
+                Toast.error('Không thể xóa năm học đang hoạt động. Hãy chọn năm học khác trước.');
+                return;
+            }
+            if (!confirm(`Bạn có chắc muốn xóa năm học "${name}"?`)) return;
+            try {
+                await API.delete(`/academic-years/${id}`);
+                Toast.success(`Đã xóa năm học ${name}`);
+                await this.loadYears();
+            } catch (err) {
+                console.error('Delete Year Error:', err);
+                Toast.error(err.message || 'Lỗi khi xóa');
+            }
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        {% if session.get('role') == 'admin' %}
+        AcademicYear.init();
+        {% endif %}
+    });
+</script>
+{% endblock %}
