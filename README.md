@@ -1,3 +1,16 @@
+---
+title: TaskManager
+emoji: ⚡
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+license: openrail
+short_description: Task ManageAr
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+
 # Task Management System
 
 ## Giới thiệu
@@ -193,4 +206,3 @@ short_description: Task ManageAr
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
-
