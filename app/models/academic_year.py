@@ -11,7 +11,7 @@ class AcademicYear(db.Model):
     end_year = db.Column(db.Integer, nullable=False)               # VD: 2025
     is_active = db.Column(db.Boolean, default=False)               # Năm học hiện tại
     description = db.Column(db.String(200), nullable=True)
-    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

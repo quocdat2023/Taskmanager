@@ -1,5 +1,5 @@
 from app.repositories.base_repository import BaseRepository
-from app.models.task import Task, TaskAssignment, TaskHistory, TaskRequest
+from app.models.task import Task, TaskAssignment, TaskHistory, TaskRequest, SubTask, TaskComment, TaskAttachment
 from app.extensions import db
 from datetime import datetime
 
@@ -39,10 +39,7 @@ class TaskRepository(BaseRepository):
         return query.order_by(Task.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     def get_tasks_by_assignee(self, user_id, semester=None, academic_year=None, status=None, search=None, page=1, per_page=20):
-        # We want to filter by TaskAssignment.status if status is provided, 
-        # because the user is looking at their personal board.
         query = Task.query.join(TaskAssignment).filter(TaskAssignment.user_id == user_id)
-        
         if semester:
             query = query.filter(Task.semester == semester)
         if academic_year:
@@ -57,33 +54,23 @@ class TaskRepository(BaseRepository):
         return query.order_by(Task.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     def get_tasks_by_creator_or_assignee(self, user_id, semester=None, academic_year=None, status=None, search=None, page=1, per_page=20):
-        # This is for teachers: see what they created + what was assigned to them
-        # We use an outer join to TaskAssignment to check if user_id is creator OR assignee
-        from app.models.task import TaskAssignment
         query = Task.query.outerjoin(TaskAssignment).filter(
             db.or_(
                 Task.created_by == user_id,
                 TaskAssignment.user_id == user_id
             )
         )
-        
         if semester:
             query = query.filter(Task.semester == semester)
         if academic_year:
             query = query.filter(Task.academic_year == academic_year)
         if status:
-            # Note: if it's an assignment, we might want to check assignment status, 
-            # but if it's creator-only and no assignment, we check task status.
-            # Simplified: check overall task status.
             query = query.filter(Task.status == status)
-            
         if search:
             like = f'%{search}%'
             query = query.filter(
                 db.or_(Task.title.ilike(like), Task.course_name.ilike(like))
             )
-            
-        # Distinct to avoid duplicates due to multiple assignments (though rare for same user)
         return query.distinct().order_by(Task.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     def get_tasks_by_status(self, status, user_id=None):
@@ -95,7 +82,7 @@ class TaskRepository(BaseRepository):
     def get_overdue_tasks(self):
         return Task.query.filter(
             Task.due_date < datetime.utcnow(),
-            Task.status != 'done'
+            Task.status.notin_(['done', 'approved'])
         ).all()
 
     def create_task(self, title, description, created_by, assignee_ids=None, **kwargs):
@@ -127,23 +114,15 @@ class TaskRepository(BaseRepository):
         task = self.get_by_id(task_id)
         if not task:
             return None
-            
         assignee_ids = kwargs.pop('assignee_ids', None)
-        
-        # Update flat fields
         for key, value in kwargs.items():
             if hasattr(task, key):
                 setattr(task, key, value)
-        
-        # Update assignees if provided
         if assignee_ids is not None:
-            # Clear existing
             TaskAssignment.query.filter_by(task_id=task.id).delete()
-            # Add new
             for uid in assignee_ids:
                 assignment = TaskAssignment(task_id=task.id, user_id=uid)
                 db.session.add(assignment)
-        
         db.session.commit()
         return task
 
@@ -153,7 +132,7 @@ class TaskRepository(BaseRepository):
             assignment.status = status
             if note:
                 assignment.note = note
-            if status == 'done':
+            if status in ('done', 'approved'):
                 assignment.submitted_at = datetime.utcnow()
             db.session.commit()
         return assignment
@@ -162,11 +141,8 @@ class TaskRepository(BaseRepository):
         return TaskAssignment.query.filter_by(task_id=task_id, user_id=user_id).first()
 
     def get_task_stats(self, user_id=None):
-        """Get task statistics."""
         base_query = Task.query
         if user_id:
-            # For non-admin, stats include tasks they created OR tasks assigned to them
-            from app.models.task import TaskAssignment
             base_query = base_query.outerjoin(TaskAssignment).filter(
                 db.or_(
                     Task.created_by == user_id,
@@ -183,7 +159,8 @@ class TaskRepository(BaseRepository):
             'todo': base_query.filter(Task.status == 'todo').count(),
             'in_progress': base_query.filter(Task.status == 'in_progress').count(),
             'done': base_query.filter(Task.status == 'done').count(),
-            'overdue': base_query.filter(Task.status != 'done', Task.due_date < datetime.utcnow()).count(),
+            'approved': base_query.filter(Task.status == 'approved').count(),
+            'overdue': base_query.filter(Task.status.notin_(['done', 'approved']), Task.due_date < datetime.utcnow()).count(),
             'pending_requests': pending_requests
         }
 
@@ -199,8 +176,8 @@ class TaskRepository(BaseRepository):
         db.session.commit()
         return history
 
-    def get_task_history(self, task_id):
-        return TaskHistory.query.filter_by(task_id=task_id).order_by(TaskHistory.created_at.desc()).all()
+    def get_task_history(self, task_id, page=1, per_page=10):
+        return TaskHistory.query.filter_by(task_id=task_id).order_by(TaskHistory.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     # Task Request Methods (Approvals)
     def create_request(self, task_id, requester_id, request_type, target_user_id=None, note=None):
@@ -218,9 +195,6 @@ class TaskRepository(BaseRepository):
     def get_pending_requests(self):
         return TaskRequest.query.filter_by(status='pending').order_by(TaskRequest.created_at.desc()).all()
 
-    def get_user_requests(self, user_id):
-        return TaskRequest.query.filter_by(requester_id=user_id).order_by(TaskRequest.created_at.desc()).all()
-
     def update_request_status(self, request_id, status, processed_by, note=None):
         req = TaskRequest.query.get(request_id)
         if req:
@@ -231,3 +205,76 @@ class TaskRepository(BaseRepository):
                 req.note = note
             db.session.commit()
         return req
+
+    def _update_parent_task_progress(self, task_id):
+        task = Task.query.get(task_id)
+        if not task: return
+        total = task.subtasks.count()
+        if total == 0:
+            return  # If no subtasks, let manual progress remain or set to 0. Better to not force 0 if they manually typed it.
+        done = task.subtasks.filter_by(is_done=True).count()
+        task.progress = int((done / total) * 100)
+        db.session.commit()
+
+    # Subtasks
+    def create_subtask(self, task_id, title):
+        st = SubTask(task_id=task_id, title=title)
+        db.session.add(st)
+        db.session.commit()
+        self._update_parent_task_progress(task_id)
+        return st
+
+    def update_subtask(self, subtask_id, **kwargs):
+        st = SubTask.query.get(subtask_id)
+        if st:
+            for k, v in kwargs.items():
+                if hasattr(st, k):
+                    setattr(st, k, v)
+            db.session.commit()
+            if 'is_done' in kwargs:
+                self._update_parent_task_progress(st.task_id)
+        return st
+
+    def delete_subtask(self, subtask_id):
+        st = SubTask.query.get(subtask_id)
+        if st:
+            task_id = st.task_id
+            db.session.delete(st)
+            db.session.commit()
+            self._update_parent_task_progress(task_id)
+            return True
+        return False
+
+    # Comments
+    def add_comment(self, task_id, user_id, content, parent_id=None):
+        c = TaskComment(task_id=task_id, user_id=user_id, content=content, parent_id=parent_id)
+        db.session.add(c)
+        db.session.commit()
+        return c
+
+    def get_comment(self, comment_id):
+        return TaskComment.query.get(comment_id)
+
+    def delete_comment(self, comment_id):
+        c = TaskComment.query.get(comment_id)
+        if c:
+            db.session.delete(c)
+            db.session.commit()
+            return True
+        return False
+
+    # Attachments
+    def add_attachment(self, task_id, filename, file_path, file_type=None):
+        a = TaskAttachment(task_id=task_id, filename=filename, file_path=file_path, file_type=file_type)
+        db.session.add(a)
+        db.session.commit()
+        return a
+
+    def delete_attachment(self, attachment_id):
+        a = TaskAttachment.query.get(attachment_id)
+        if a:
+            db.session.delete(a)
+            db.session.commit()
+            return True
+        return False
+

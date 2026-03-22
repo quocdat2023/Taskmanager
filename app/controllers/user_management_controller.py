@@ -26,9 +26,19 @@ def get_system_health():
     storage_healthy = os.path.exists(upload_dir) and os.access(upload_dir, os.W_OK)
     storage_status = 'healthy' if storage_healthy else 'error'
 
-    # 3. Check Mail Configuration
+    # 3. Check Mail Configuration & Connection
+    from app.extensions import mail
     mail_server = current_app.config.get('MAIL_SERVER')
-    mail_status = 'configured' if mail_server else 'not_configured'
+    if not mail_server:
+        mail_status = 'not_configured'
+    else:
+        try:
+            # Try to connect to SMTP server
+            with mail.connect() as conn:
+                mail_status = 'online'
+        except Exception as e:
+            print(f"Mail connection health check failed: {e}")
+            mail_status = 'connection_error'
 
     return jsonify({
         'database': db_status,
@@ -123,12 +133,43 @@ def toggle_user_active(user_id):
 @jwt_required()
 @role_required('admin')
 def delete_user(user_id):
+    print(f"DEBUG: DELETE request for user_id: {user_id}")
     # Prevent admin from deleting themselves
     current_user_id = get_jwt_identity()
-    if current_user_id == user_id:
-        return jsonify({'error': 'You cannot delete yourself'}), 400
+    if int(current_user_id) == int(user_id):
+        return jsonify({'error': 'Bạn không thể tự xóa chính mình'}), 400
         
-    result = user_service.delete_user(user_id)
-    if not result:
+    try:
+        result = user_service.delete_user(user_id)
+        if not result:
+            return jsonify({'error': 'User not found'}), 404
+        return jsonify({'message': 'User deleted successfully'}), 200
+    except Exception as e:
+        print(f"Error in delete_user: {str(e)}")
+        return jsonify({'error': f'Không thể xóa người dùng: {str(e)}'}), 400
+@user_manage_bp.route('/users/<int:user_id>/toggle-approve', methods=['PUT'])
+@jwt_required()
+@role_required('admin')
+def toggle_user_approval(user_id):
+    user = user_service.toggle_approved(user_id)
+    if not user:
         return jsonify({'error': 'User not found'}), 404
-    return jsonify({'message': 'User deleted successfully'}), 200
+    
+    # Notify user if approved
+    if user.is_approved:
+        try:
+            from app.models.notification import Notification
+            from app.extensions import db
+            notif = Notification(
+                user_id=user.id,
+                title='Tài khoản đã được phê duyệt',
+                message='Chúc mừng! Tài khoản của bạn đã được quản trị viên phê duyệt. Bạn có thể sử dụng đầy đủ tính năng ngay bây giờ.',
+                notification_type='info'
+            )
+            db.session.add(notif)
+            db.session.commit()
+        except Exception as e:
+            print(f"Error creating approval notification: {e}")
+
+    status = 'approved' if user.is_approved else 'unapproved'
+    return jsonify({'message': f'User {status} successfully', 'is_approved': user.is_approved}), 200

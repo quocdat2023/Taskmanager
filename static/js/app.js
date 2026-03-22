@@ -161,10 +161,10 @@ const Auth = {
         try {
             const data = await API.post('/register', formData);
             if (data) {
-                Toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+                Toast.success(data.message || 'Đăng ký thành công! Vui lòng chờ quản trị viên phê duyệt.');
                 setTimeout(() => {
                     window.location.href = '/login';
-                }, 1000);
+                }, 3000);
             }
         } catch (error) {
             Toast.error(error.message || 'Đăng ký thất bại');
@@ -182,13 +182,43 @@ const Auth = {
 
 // Global polling for "Realtime" feel
 const Realtime = {
+    socket: null,
     interval: null,
     lastUnreadCount: 0,
 
     init() {
         if (sessionStorage.getItem('token')) {
+            this.initSocket();
             this.start();
         }
+    },
+
+    initSocket() {
+        const token = sessionStorage.getItem('token');
+        if (!token || this.socket) return;
+
+        this.socket = io({
+            query: { token }
+        });
+
+        this.socket.on('connect', () => {
+            console.log('Connected to real-time server');
+        });
+
+        this.socket.on('new_message', (msg) => {
+            // If chat module exists, notify it
+            window.dispatchEvent(new CustomEvent('new-chat-message', { detail: msg }));
+        });
+
+        this.socket.on('new_notification', (notif) => {
+            Notifications.load();
+            Toast.info(notif.message);
+        });
+
+        this.socket.on('task_updated', (data) => {
+            // Dispatch specifically for task module
+            window.dispatchEvent(new CustomEvent('task-realtime-update', { detail: data }));
+        });
     },
 
     start() {
@@ -372,6 +402,7 @@ function getStatusLabel(status) {
         'todo': 'Chưa bắt đầu',
         'in_progress': 'Đang làm',
         'done': 'Hoàn thành',
+        'approved': 'Đã duyệt'
     };
     return map[status] || status;
 }
@@ -381,6 +412,7 @@ function getStatusBadge(status) {
         'todo': '<span class="badge-status badge-todo"><i class="fas fa-circle" style="font-size:6px"></i> Chưa bắt đầu</span>',
         'in_progress': '<span class="badge-status badge-progress"><i class="fas fa-circle" style="font-size:6px"></i> Đang làm</span>',
         'done': '<span class="badge-status badge-done"><i class="fas fa-circle" style="font-size:6px"></i> Hoàn thành</span>',
+        'approved': '<span class="badge-status" style="background:rgba(108,92,231,0.1);color:var(--status-approved)"><i class="fas fa-shield-check" style="font-size:6px"></i> Đã duyệt</span>',
     };
     return map[status] || status;
 }

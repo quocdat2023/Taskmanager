@@ -22,8 +22,7 @@ class Schedule(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationship
-    creator_user = db.relationship('User', backref='created_schedules')
+    # Relationship defined by backref in User model (user_creator)
 
     def to_dict(self):
         return {
@@ -44,7 +43,7 @@ class Schedule(db.Model):
             'color': self.color,
             'backgroundColor': self.color,
             'created_by': self.created_by,
-            'creator_name': self.creator_user.full_name if self.creator_user else None,
+            'creator_name': self.user_creator.full_name if self.user_creator else None,
             'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
         }
 

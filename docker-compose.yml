@@ -5,8 +5,6 @@ services:
     build: .
     volumes:
       - .:/app
-      - /app/uploads
-      - /app/instance
     environment:
       - FLASK_APP=run.py
       - FLASK_CONFIG=production

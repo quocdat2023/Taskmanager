@@ -32,7 +32,10 @@ class UserService:
             return None, None, 'Invalid credentials'
 
         if not user.is_active:
-            return None, None, 'Account is deactivated'
+            return None, None, 'Tài khoản đã bị vô hiệu hóa'
+
+        if not user.is_approved:
+            return None, None, 'Tài khoản đang chờ quản trị viên phê duyệt'
 
         token = create_access_token(
             identity=user.id,
@@ -69,6 +72,14 @@ class UserService:
         user = self.repo.get_by_id(user_id)
         if user:
             user.is_active = not user.is_active
+            from app.extensions import db
+            db.session.commit()
+        return user
+
+    def toggle_approved(self, user_id):
+        user = self.repo.get_by_id(user_id)
+        if user:
+            user.is_approved = not user.is_approved
             from app.extensions import db
             db.session.commit()
         return user

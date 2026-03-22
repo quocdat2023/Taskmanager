@@ -1,11 +1,19 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app.services.task_service import TaskService
 from app.services.email_service import EmailService
 from app.utils.decorators import role_required
+import os
+from werkzeug.utils import secure_filename
+from datetime import datetime
 
 task_bp = Blueprint('tasks', __name__, url_prefix='/api')
 task_service = TaskService()
+
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'png', 'jpg', 'jpeg'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @task_bp.route('/tasks', methods=['POST'])
@@ -35,12 +43,28 @@ def create_task():
         class_group=data.get('class_group'),
         semester=data.get('semester'),
         academic_year=data.get('academic_year'),
+        progress=data.get('progress', 0),
+        estimated_time=data.get('estimated_time'),
+        actual_time=data.get('actual_time'),
     )
 
+    email_sent = False
+    email_error = None
     if task and role == 'admin':
-        EmailService.send_task_assignment_notification(task)
+        try:
+            success, msg = EmailService.send_task_assignment_notification(task)
+            email_sent = success
+            if not success:
+                email_error = msg
+        except Exception as e:
+            email_error = str(e)
         
-    return jsonify({'message': 'Task đã được tạo', 'task': task.to_dict()}), 201
+    return jsonify({
+        'message': 'Task đã được tạo',
+        'task': task.to_dict(),
+        'email_sent': email_sent,
+        'email_error': email_error
+    }), 201
 
 
 @task_bp.route('/tasks', methods=['GET'])
@@ -111,12 +135,8 @@ def update_task(task_id):
     claims = get_jwt()
     role = claims.get('role', 'student')
     
-    # Check if this is an assignment update for non-admin
-    if 'assignee_ids' in data and role != 'admin':
-        # Handled inside task_service
-        pass
-
-    task = task_service.update_task(task_id, changed_by=user_id, user_role=role, **data)
+    data['user_role'] = role
+    task = task_service.update_task(task_id, changed_by=user_id, **data)
     if not task:
         return jsonify({'error': 'Task không tồn tại'}), 404
         
@@ -126,8 +146,10 @@ def update_task(task_id):
 @task_bp.route('/tasks/<int:task_id>/history', methods=['GET'])
 @jwt_required()
 def get_task_history(task_id):
-    history = task_service.get_task_history(task_id)
-    return jsonify({'history': history}), 200
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
+    result = task_service.get_task_history(task_id, page=page, per_page=per_page)
+    return jsonify(result), 200
 
 
 @task_bp.route('/tasks/<int:task_id>/status', methods=['PUT'])
@@ -135,22 +157,19 @@ def get_task_history(task_id):
 def update_task_status(task_id):
     data = request.get_json()
     status = data.get('status')
-    if status not in ('todo', 'in_progress', 'done'):
+    if status not in ('todo', 'in_progress', 'done', 'approved'):
         return jsonify({'error': 'Trạng thái không hợp lệ'}), 400
 
     user_id = get_jwt_identity()
     claims = get_jwt()
     role = claims.get('role', 'student')
 
-    # personalized logic: everyone updates their own assignment unless they explicitly want master update
-    # for simplicity, let's say students/teachers update personal, admin can update master.
     if role == 'admin':
         task = task_service.update_task_status(task_id, status, user_id)
         if not task:
             return jsonify({'error': 'Task không tồn tại'}), 404
         return jsonify({'message': 'Trạng thái chính đã được cập nhật', 'task': task.to_dict()}), 200
     else:
-        # Check if user is assigned
         assignment = task_service.update_assignment_status(task_id, user_id, status, data.get('note'))
         if not assignment:
             return jsonify({'error': 'Bạn không được giao task này để cập nhật.'}), 403
@@ -231,3 +250,89 @@ def get_task_stats():
         stats = task_service.get_task_stats(user_id)
 
     return jsonify({'stats': stats}), 200
+
+
+# Subtasks Endpoints
+@task_bp.route('/tasks/<int:task_id>/subtasks', methods=['POST'])
+@jwt_required()
+def add_subtask(task_id):
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    st = task_service.add_subtask(task_id, user_id, data.get('title'))
+    return jsonify({'subtask': st.to_dict()}), 201
+
+
+@task_bp.route('/tasks/<int:task_id>/subtasks/<int:subtask_id>', methods=['PUT'])
+@jwt_required()
+def update_subtask(task_id, subtask_id):
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    st = task_service.update_subtask(task_id, user_id, subtask_id, **data)
+    return jsonify({'subtask': st.to_dict()}), 200
+
+
+@task_bp.route('/tasks/<int:task_id>/subtasks/<int:subtask_id>', methods=['DELETE'])
+@jwt_required()
+def delete_subtask(task_id, subtask_id):
+    user_id = get_jwt_identity()
+    task_service.delete_subtask(task_id, user_id, subtask_id)
+    return jsonify({'message': 'Đã xóa nhiệm vụ con'}), 200
+
+
+# Comments Endpoints
+@task_bp.route('/tasks/<int:task_id>/comments', methods=['POST'])
+@jwt_required()
+def add_comment(task_id):
+    data = request.get_json()
+    user_id = get_jwt_identity()
+    parent_id = data.get('parent_id')
+    c = task_service.add_comment(task_id, user_id, data.get('content'), parent_id)
+    return jsonify({'comment': c.to_dict()}), 201
+
+
+@task_bp.route('/tasks/<int:task_id>/comments/<int:comment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_comment(task_id, comment_id):
+    user_id = get_jwt_identity()
+    claims = get_jwt()
+    role = claims.get('role', 'student')
+    
+    success = task_service.delete_comment(comment_id, user_id, role)
+    if not success:
+        return jsonify({'error': 'Bạn không có quyền xóa thảo luận này'}), 403
+        
+    return jsonify({'message': 'Đã xóa thảo luận'}), 200
+
+
+# Attachments Endpoints
+@task_bp.route('/tasks/<int:task_id>/attachments', methods=['POST'])
+@jwt_required()
+def add_attachment(task_id):
+    if 'file' not in request.files:
+        return jsonify({'error': 'Không tìm thấy file'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'Chưa chọn file'}), 400
+    
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        # Unique name
+        unique_name = f"{datetime.utcnow().timestamp()}_{filename}"
+        upload_folder = current_app.config.get('UPLOAD_FOLDER', 'uploads')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, unique_name)
+        file.save(file_path)
+        
+        user_id = get_jwt_identity()
+        a = task_service.add_attachment(task_id, user_id, filename, unique_name, file.content_type)
+        return jsonify({'attachment': a.to_dict()}), 201
+    
+    return jsonify({'error': 'Định dạng file không được hỗ trợ'}), 400
+
+
+@task_bp.route('/tasks/<int:task_id>/attachments/<int:attachment_id>', methods=['DELETE'])
+@jwt_required()
+def delete_attachment(task_id, attachment_id):
+    user_id = get_jwt_identity()
+    task_service.delete_attachment(task_id, user_id, attachment_id)
+    return jsonify({'message': 'Đã xóa file đính kèm'}), 200

@@ -235,8 +235,8 @@
     <div class="schedule-filter-container">
         {% if session.get('role') == 'admin' %}
         <div class="filter-item">
-            <label class="form-label-custom">GIẢNG VIÊN (GVVC)</label>
-            <select class="form-select" id="teacher-filter">
+            <label class="form-label-custom mb-1">GIẢNG VIÊN (GVVC)</label>
+            <select class="form-control-custom py-1" id="teacher-filter">
                 <option value="all">Tất cả giảng viên</option>
             </select>
         </div>
@@ -246,28 +246,28 @@
         {% endif %}
 
         <div class="filter-item">
-            <label class="form-label-custom">HỌC KỲ</label>
-            <select class="form-select" id="semester-filter">
+            <label class="form-label-custom mb-1">HỌC KỲ</label>
+            <select class="form-control-custom py-1" id="semester-filter">
                 <option value="">Tất cả năm học / học kỳ</option>
                 <!-- Populated dynamically by Schedules.loadAcademicYears() -->
             </select>
         </div>
+        <div class="col-md-4 d-flex align-items-end justify-content-end gap-2">
+            <a class="form-control-custom py-1 mt-4" style="cursor:default;" title="Tất cả"
+                onclick="Schedules.showListModal()">
+                <i class="fas fa-list"></i> Tất cả
+            </a>
+            {% if session.get('role') in ['admin', 'teacher'] %}
 
-        <div class="filter-item button-group">
-            <div class="buttons-inner">
-                <button class="btn-glass mt-4" onclick="Schedules.showListModal()">
-                    <i class="fas fa-list"></i>
-                    <span class="btn-text">Tất cả</span>
-                </button>
+            <button class="form-control-custom py-1" onclick="Schedules.showCreateModal()"
+                style="background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white;">
+                <i class="fas fa-plus"></i>
+                Thêm mới
+            </button>
+            {% endif %}
 
-                {% if session.get('role') in ['admin', 'teacher'] %}
-                <button class="btn-primary-custom" onclick="Schedules.showCreateModal()">
-                    <i class="fas fa-plus"></i>
-                    Thêm mới
-                </button>
-                {% endif %}
-            </div>
         </div>
+
     </div>
 </div>
 

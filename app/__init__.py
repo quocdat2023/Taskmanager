@@ -50,6 +50,7 @@ def create_app(config_name=None):
     from app.controllers.reminder_controller import reminder_bp
     from app.controllers.academic_year_controller import academic_year_bp
     from app.controllers.chat_controller import chat_bp
+    from werkzeug.security import generate_password_hash
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(task_bp)
@@ -72,18 +73,41 @@ def create_app(config_name=None):
         
         # Seed default admin if not exists
         from app.models.user import User
-        if not User.query.filter_by(username='admin').first():
-            admin = User(
-                username='admin',
-                email='admin@edutask.vn',
-                full_name='Quản trị viên',
-                role='admin',
-                is_active=True
-            )
-            admin.set_password('123456')
-            db.session.add(admin)
-            db.session.commit()
-            print("Default admin created: admin / 123456")
+        from sqlalchemy import inspect
+        
+        try:
+            inspector = inspect(db.engine)
+            columns = [c['name'] for c in inspector.get_columns('users')]
+            has_approved_col = 'is_approved' in columns
+            
+            if not User.query.filter_by(username='admin').first():
+                print("=== Seeding Data ===")
+                admin_pass = generate_password_hash('123456')
+                user_pass = generate_password_hash('123456')
+                
+                def create_user_safe(**kwargs):
+                    if not has_approved_col:
+                        kwargs.pop('is_approved', None)
+                    return User(**kwargs)
+
+                admin = create_user_safe(username='admin', email='quocdatforwork.com', password_hash=admin_pass, full_name='Quản Trị Viên', role='admin', is_active=True, is_approved=True)
+                gv1 = create_user_safe(username='gv1', email='quocdat2001.999@gmail.com', password_hash=user_pass, full_name='Giảng Viên A', role='teacher', department='CNTT', is_active=True, is_approved=True)
+                gv2 = create_user_safe(username='gv2', email='iphonequocdat@gmail.com', password_hash=user_pass, full_name='Giảng Viên B', role='teacher', department='Kinh Tế', is_active=True, is_approved=True)
+                
+                sv1 = create_user_safe(username='sv1', email='itdatit12@gmail.com', password_hash=user_pass, full_name='Sinh Viên 1', role='student', student_id='SV001', department='CNTT', is_active=True, is_approved=True)
+                sv2 = create_user_safe(username='sv2', email='quocdatforworkv2@gmail.com', password_hash=user_pass, full_name='Sinh Viên 2', role='student', student_id='SV002', department='CNTT', is_active=True, is_approved=True)
+                sv3 = create_user_safe(username='sv3', email='legalmind2025@gmail.com', password_hash=user_pass, full_name='Sinh Viên 3', role='student', student_id='SV003', department='Kinh Tế', is_active=True, is_approved=True)
+                
+                db.session.add_all([admin, gv1, gv2, sv1, sv2, sv3])
+                db.session.commit()
+                print("✓ Created default users")
+        except Exception as e:
+            print(f"Skipping seeding due to schema mismatch or error: {e}")
+            db.session.rollback()
+
+
+            
+
 
     # Start automated reminder worker
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true' or not app.debug:

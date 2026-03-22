@@ -37,8 +37,10 @@ class NotificationService:
         try:
             if not current_app.config.get('MAIL_USERNAME'):
                 return False
+            import uuid
+            unique_suffix = f" (Ref: {str(uuid.uuid4())[:8]})"
             msg = Message(
-                subject=subject,
+                subject=f"{subject}{unique_suffix}",
                 recipients=[to_email],
                 body=body,
                 sender=current_app.config.get('MAIL_DEFAULT_SENDER')

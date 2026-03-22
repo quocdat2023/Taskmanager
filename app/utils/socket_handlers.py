@@ -25,6 +25,22 @@ def handle_connect():
 def handle_disconnect():
     print("User disconnected from WebSocket")
 
+@socketio.on('join_task')
+def on_join_task(data):
+    task_id = data.get('task_id')
+    if task_id:
+        room = f"task_{task_id}"
+        join_room(room)
+        print(f"User joined room: {room}")
+
+@socketio.on('leave_task')
+def on_leave_task(data):
+    task_id = data.get('task_id')
+    if task_id:
+        room = f"task_{task_id}"
+        leave_room(room)
+        print(f"User left room: {room}")
+
 @socketio.on('send_message')
 def handle_send_message(data):
     # This event is triggered when a user sends a message via WebSocket

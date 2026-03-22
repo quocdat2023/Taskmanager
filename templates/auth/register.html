@@ -8,8 +8,13 @@
         <div class="auth-logo mx-auto">
             <i class="fas fa-user-plus text-white"></i>
         </div>
-        <h2 class="auth-title">Đăng ký tài khoản</h2>
+        <h2 class="auth-title">Đăng ký tài khoản sinh viên</h2>
         <p class="auth-subtitle">Tham gia EduTask ngay hôm nay</p>
+
+        <div class="alert alert-info" style="background: rgba(52, 152, 219, 0.1); border: 1px solid rgba(52, 152, 219, 0.3); color: var(--text-primary); border-radius: 12px; font-size: 0.8rem; padding: 10px 15px;">
+            <i class="fas fa-info-circle me-1"></i>
+            Sau khi đăng ký, tài khoản cần được quản trị viên phê duyệt trước khi đăng nhập.
+        </div>
 
         <form class="auth-form" id="registerForm" onsubmit="event.preventDefault(); Auth.register(Object.fromEntries(new FormData(this)));">
             <div class="row">
@@ -28,21 +33,12 @@
                 <input type="email" class="form-control-custom" id="email" name="email" required>
             </div>
 
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label-custom" for="password">Mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control-custom" id="password" name="password" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label-custom" for="role">Vai trò</label>
-                    <select class="form-control-custom" id="role" name="role">
-                        <option value="student">Sinh viên</option>
-                        <option value="teacher">Giảng viên</option>
-                    </select>
-                </div>
+            <div class="mb-3">
+                <label class="form-label-custom" for="password">Mật khẩu <span class="text-danger">*</span></label>
+                <input type="password" class="form-control-custom" id="password" name="password" required>
             </div>
 
-            <div id="student-fields" class="row">
+            <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label-custom" for="student_id">Mã sinh viên</label>
                     <input type="text" class="form-control-custom" id="student_id" name="student_id">
@@ -63,17 +59,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-    document.getElementById('role').addEventListener('change', function() {
-        const studentFields = document.getElementById('student-fields');
-        if (this.value === 'student') {
-            studentFields.style.display = 'flex';
-        } else {
-            studentFields.style.display = 'none';
-        }
-    });
-</script>
 {% endblock %}

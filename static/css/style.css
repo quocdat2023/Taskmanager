@@ -25,6 +25,7 @@
     --status-todo: #636E72;
     --status-progress: #FDCB6E;
     --status-done: #00B894;
+    --status-approved: #6C5CE7;
     --status-overdue: #E17055;
 
     /* Priority Colors */
@@ -831,46 +832,76 @@ textarea.form-control-custom {
 /* ===== Kanban Board ===== */
 .kanban-board {
     display: flex;
-    gap: 20px;
-    min-height: 500px;
+    gap: 15px;
+    min-height: calc(100vh - 250px);
     overflow-x: auto;
     padding-bottom: 20px;
+    align-items: flex-start;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar for kanban board */
+.kanban-board::-webkit-scrollbar {
+    height: 10px;
+}
+
+.kanban-board::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 10px;
+}
+
+.kanban-board::-webkit-scrollbar-thumb {
+    background: rgba(108, 92, 231, 0.4);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.kanban-board::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
 
 .kanban-column {
     flex: 1;
-    min-width: 300px;
-    background: var(--bg-card);
+    min-width: 250px;
+    background: rgba(241, 245, 249, 0.4);
     border: 1px solid var(--glass-border);
     border-radius: var(--radius-lg);
     display: flex;
     flex-direction: column;
     box-shadow: var(--glass-shadow);
+    max-height: calc(100vh - 220px);
 }
 
 .kanban-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid var(--border-color);
+    padding: 18px 20px;
+    border-bottom: 2px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 }
 
 .kanban-header-title {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: var(--text-primary);
 }
 
 .kanban-header-count {
-    background: var(--glass-bg);
-    padding: 2px 10px;
-    border-radius: 10px;
+    background: white;
+    padding: 2px 12px;
+    border-radius: 12px;
     font-size: 0.75rem;
+    font-weight: 700;
     color: var(--text-muted);
+    border: 1px solid var(--border-color);
 }
 
 .kanban-body {
@@ -878,64 +909,147 @@ textarea.form-control-custom {
     padding: 12px;
     overflow-y: auto;
     min-height: 200px;
+    transition: background 0.2s ease;
+}
+
+.kanban-body::-webkit-scrollbar {
+    width: 4px;
 }
 
 .kanban-card {
-    background: var(--bg-secondary);
+    background: var(--bg-card);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 16px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     cursor: grab;
-    transition: all var(--transition-fast);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+.kanban-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background: var(--priority-medium);
+}
+
+.kanban-card.p-low::after {
+    background: var(--priority-low);
+}
+
+.kanban-card.p-medium::after {
+    background: var(--priority-medium);
+}
+
+.kanban-card.p-high::after {
+    background: var(--priority-high);
+}
+
+.kanban-card.p-urgent::after {
+    background: var(--priority-urgent);
 }
 
 .kanban-card:active {
     cursor: grabbing;
-    transform: rotate(2deg);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transform: rotate(1deg) scale(1.02);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    z-index: 10;
 }
 
 .kanban-card:hover {
-    border-color: var(--border-active);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+    border-color: var(--primary-light);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
 }
 
 .kanban-card-title {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin-bottom: 10px;
     color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.kanban-card-progress {
+    margin-bottom: 15px;
+}
+
+.progress-container {
+    height: 6px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent-red));
+    border-radius: 10px;
+    transition: width 0.5s ease;
+}
+
+.progress-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+}
+
+.kanban-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .kanban-card-meta {
     display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.meta-item {
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     font-size: 0.75rem;
     color: var(--text-muted);
 }
 
+.meta-item i {
+    width: 14px;
+    opacity: 0.7;
+}
+
 .kanban-card-assignees {
     display: flex;
-    margin-top: 10px;
+    flex-shrink: 0;
 }
 
 .kanban-card-assignee {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--accent-red));
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.65rem;
-    font-weight: 600;
-    margin-left: -6px;
-    border: 2px solid var(--bg-secondary);
+    font-weight: 700;
+    margin-left: -8px;
+    border: 2px solid white;
     color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .kanban-card-assignee:first-child {
@@ -944,9 +1058,49 @@ textarea.form-control-custom {
 
 /* Drag over state */
 .kanban-body.drag-over {
-    background: rgba(108, 92, 231, 0.03);
+    background: rgba(237, 42, 38, 0.05);
     border: 2px dashed var(--primary);
-    border-radius: var(--radius-md);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.approve-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn-approve {
+    flex: 1;
+    background: rgba(0, 184, 148, 0.1);
+    color: var(--status-done);
+    border: 1px solid var(--status-done);
+    padding: 6px;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.btn-approve:hover {
+    background: var(--status-done);
+    color: white;
+}
+
+.btn-reject {
+    flex: 1;
+    background: rgba(225, 112, 85, 0.1);
+    color: var(--status-overdue);
+    border: 1px solid var(--status-overdue);
+    padding: 6px;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.btn-reject:hover {
+    background: var(--status-overdue);
+    color: white;
 }
 
 /* ===== Login / Auth Pages ===== */
@@ -1965,4 +2119,116 @@ textarea.form-control-custom {
 
 .fc-daygrid-event-harness {
     color: var(--text-primary) !important;
+}
+
+/* ===== Custom Nav Pills ===== */
+.custom-nav-pills {
+    background: var(--bg-input) !important;
+    padding: 6px !important;
+    border-radius: var(--radius-md) !important;
+    border: 1px solid var(--border-color);
+}
+
+.custom-nav-pills .nav-item {
+    margin: 0;
+}
+
+.custom-nav-pills .nav-link {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    padding: 8px 12px;
+}
+
+.custom-nav-pills .nav-link:hover:not(.active) {
+    color: var(--primary);
+    background: var(--bg-card);
+}
+
+.custom-nav-pills .nav-link.active {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+/* History tab styles */
+.history-list {
+    max-height: 400px;
+    /* same as before */
+    overflow-y: auto;
+    font-size: 0.875rem;
+    /* 14px approx -> slightly larger than 0.85rem */
+    padding-right: 0.25rem;
+    /* avoid scroll overlaying content */
+}
+
+/* Each history item */
+.history-item {
+    margin-bottom: 1rem;
+    /* mb-3 */
+    padding-bottom: 0.5rem;
+    /* pb-2 */
+    border-bottom: 1px solid var(--bs-light);
+    /* Bootstrap light border color */
+}
+
+/* Header row inside item */
+.history-item .hi-header {
+    gap: 0.5rem;
+    align-items: flex-start;
+}
+
+/* User name */
+.history-item .hi-user {
+    color: var(--bs-primary);
+    font-weight: 600;
+}
+
+/* Timestamp small text */
+.history-item .hi-time {
+    color: #6c757d;
+    /* text-muted */
+    font-size: 0.75rem;
+}
+
+/* Action badge (customized look) */
+.history-item .hi-badge {
+    font-size: 0.65rem;
+    background-color: #f8f9fa;
+    /* bg-light */
+    color: #212529;
+    /* text-dark */
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    padding: 0.25rem 0.45rem;
+    border-radius: 0.35rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+/* Details text */
+.history-item .hi-details {
+    margin-top: 0.35rem;
+    color: #6c757d;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    /* preserve newlines if any */
+}
+
+/* Empty state */
+.history-empty {
+    padding: 2.25rem 1rem;
+    color: #6c757d;
+    text-align: center;
+}
+
+/* Optional: make scroll nice on WebKit */
+.history-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
 }

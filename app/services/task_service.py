@@ -2,6 +2,7 @@ from app.repositories.task_repository import TaskRepository
 from app.repositories.notification_repository import NotificationRepository
 from app.repositories.user_repository import UserRepository
 from app.models.task import TaskAssignment
+from app.extensions import db, socketio
 from datetime import datetime
 
 
@@ -43,19 +44,6 @@ class TaskService:
                         reference_type='task',
                         reference_id=task.id
                     )
-            
-            # Notify all students about the record creation
-            students = self.user_repo.get_students()
-            student_ids = [s.id for s in students]
-            if student_ids:
-                self.notification_repo.create_bulk(
-                    user_ids=student_ids,
-                    title='Công việc hệ thống mới',
-                    message=f'Công việc "{title}" vừa được thêm vào hệ thống.',
-                    notification_type='task',
-                    reference_type='task',
-                    reference_id=task.id
-                )
         else:
             # Teachers/Students must request for each assignee
             # Create task with NO assignees first
@@ -112,6 +100,8 @@ class TaskService:
                 kwargs['due_date'] = None
         
         assignee_ids = kwargs.pop('assignee_ids', None)
+        user_role = kwargs.pop('user_role', 'student')
+        
         task = self.repo.update_task(task_id, **kwargs)
         
         if task:
@@ -120,7 +110,6 @@ class TaskService:
             # Handle assignees logic
             if assignee_ids is not None:
                 existing_assignee_ids = [a.user_id for a in task.assignments]
-                user_role = kwargs.get('user_role', 'student')
                 
                 if user_role == 'admin':
                     # Admin: do it directly (add or remove)
@@ -128,13 +117,13 @@ class TaskService:
                         if uid not in assignee_ids:
                             TaskAssignment.query.filter_by(task_id=task.id, user_id=uid).delete()
                     
+                    newly_assigned_ids = []
                     for uid in assignee_ids:
                         if uid not in existing_assignee_ids:
                             assignment = TaskAssignment(task_id=task.id, user_id=uid)
-                            from app.extensions import db
                             db.session.add(assignment)
                             
-                            # Notify NEW user (Bell + Email)
+                            # Notify NEW user
                             self.notification_repo.create_notification(
                                 user_id=uid,
                                 title='Công việc mới',
@@ -143,15 +132,18 @@ class TaskService:
                                 reference_type='task',
                                 reference_id=task.id
                             )
-                            from app.services.email_service import EmailService
-                            from app.repositories.user_repository import UserRepository
-                            user = UserRepository().get_by_id(uid)
-                            if user:
-                                EmailService.send_new_member_notification(task, user)
+                            # Keep track of newly assigned users for email
+                            newly_assigned_ids.append(uid)
                     
-                    from app.extensions import db
                     db.session.commit()
                     self.repo.add_history(task_id, changed_by, 'assigned', 'Admin cập nhật thành viên trực tiếp.')
+                    
+                    if newly_assigned_ids:
+                        try:
+                            from app.services.email_service import EmailService
+                            EmailService.send_task_assignment_notification(task, specific_user_ids=newly_assigned_ids)
+                        except Exception as e:
+                            print("Lỗi gửi mail update_task:", str(e))
                 else:
                     # Non-admin: additions need approval
                     for uid in assignee_ids:
@@ -159,7 +151,7 @@ class TaskService:
                             self.repo.create_request(task_id, changed_by, 'assign', target_user_id=uid)
                             self.repo.add_history(task_id, changed_by, 'request_sent', f'Yêu cầu thêm thành viên {uid} vào công việc.')
                     
-                    # Notify all admins about new requests
+                    # Notify admins
                     admins = self.user_repo.get_by_role('admin')
                     if admins:
                         admin_ids = [a.id for a in admins]
@@ -171,59 +163,38 @@ class TaskService:
                             reference_type='request'
                         )
 
-            # Notify all current assignees about task update
+            # Notify assignees
             for assignment in task.assignments:
-                self.notification_repo.create_notification(
-                    user_id=assignment.user_id,
-                    title='Công việc được cập nhật',
-                    message=f'Công việc "{task.title}" đã có thay đổi mới.',
-                    notification_type='task',
-                    reference_type='task',
-                    reference_id=task.id
-                )
-
-            # Notify all students about task update
-            students = self.user_repo.get_students()
-            student_ids = [s.id for s in students]
-            if student_ids:
-                self.notification_repo.create_bulk(
-                    user_ids=student_ids,
-                    title='Cập nhật công việc',
-                    message=f'Công việc "{task.title}" vừa có cập nhật mới.',
-                    notification_type='task',
-                    reference_type='task',
-                    reference_id=task.id
-                )
+                if assignment.user_id != changed_by:
+                    self.notification_repo.create_notification(
+                        user_id=assignment.user_id,
+                        title='Công việc được cập nhật',
+                        message=f'Công việc "{task.title}" đã có thay đổi mới.',
+                        notification_type='task',
+                        reference_type='task',
+                        reference_id=task.id
+                    )
         return task
 
     def update_task_status(self, task_id, status, user_id):
-        # This handles the OVERALL task status (usually by admin or creator)
         task = self.repo.update_task_status(task_id, status)
         if task:
             self.repo.add_history(task_id, user_id, 'status_change', f'Cập nhật trạng thái công việc thành {status}')
-            # Notify all assignees about overall status change
-            for assignment in task.assignments:
-                self.notification_repo.create_notification(
-                    user_id=assignment.user_id,
-                    title='Trạng thái công việc thay đổi',
-                    message=f'Công việc "{task.title}" chuyển sang trạng thái: {status}',
-                    notification_type='task',
-                    reference_type='task',
-                    reference_id=task.id
-                )
+            # Realtime update for board/detail
+            socketio.emit('task_updated', {'task_id': task_id, 'action': 'status_change'}, room=f"task_{task_id}")
+            socketio.emit('task_list_updated', {'task_id': task_id}, room="broadcast_all") # If I want list refresh
 
-            # Notify all students about status change
-            students = self.user_repo.get_students()
-            student_ids = [s.id for s in students]
-            if student_ids:
-                self.notification_repo.create_bulk(
-                    user_ids=student_ids,
-                    title='Trạng thái công việc thay đổi',
-                    message=f'Công việc "{task.title}" vừa được chuyển sang: {status}',
-                    notification_type='task',
-                    reference_type='task',
-                    reference_id=task.id
-                )
+            # Notify assignees
+            for assignment in task.assignments:
+                if assignment.user_id != user_id:
+                    self.notification_repo.create_notification(
+                        user_id=assignment.user_id,
+                        title='Trạng thái công việc thay đổi',
+                        message=f'Công việc "{task.title}" chuyển sang trạng thái: {status}',
+                        notification_type='task',
+                        reference_type='task',
+                        reference_id=task.id
+                    )
         return task
 
     def update_assignment_status(self, task_id, user_id, status, note=None):
@@ -232,16 +203,19 @@ class TaskService:
             updated = self.repo.update_assignment_status(assignment.id, status, note)
             if updated:
                 task = updated.task
-                self.repo.add_history(task_id, user_id, 'progress_change', f'Cập nhật trạng thái thành {status}')
-                # Notify task creator about assignment status update
-                self.notification_repo.create_notification(
-                    user_id=task.created_by,
-                    title='Tiến độ công việc mới',
-                    message=f'{updated.assignee.full_name} đã cập nhật "{task.title}" thành {status}',
-                    notification_type='task',
-                    reference_type='task',
-                    reference_id=task.id
-                )
+                self.repo.add_history(task_id, user_id, 'progress_change', f'Cập nhật trạng thái cá nhân thành {status}')
+                # Notify task creator
+                if task.created_by != user_id:
+                    self.notification_repo.create_notification(
+                        user_id=task.created_by,
+                        title='Tiến độ công việc mới',
+                        message=f'{updated.assignee.full_name} đã cập nhật "{task.title}" thành {status}',
+                        notification_type='task',
+                        reference_type='task',
+                        reference_id=task.id
+                    )
+                # Realtime update
+                socketio.emit('task_updated', {'task_id': task_id, 'action': 'assignment_status'}, room=f"task_{task_id}")
             return updated
         return None
 
@@ -251,7 +225,6 @@ class TaskService:
         req = self.repo.create_request(task_id, requester_id, 'delete')
         self.repo.add_history(task_id, requester_id, 'request_sent', 'Yêu cầu xóa công việc.')
 
-        # Notify admins
         admins = self.user_repo.get_by_role('admin')
         if admins:
             self.notification_repo.create_bulk(
@@ -269,7 +242,6 @@ class TaskService:
         req = self.repo.create_request(task_id, requester_id, 'withdraw', target_user_id=requester_id)
         self.repo.add_history(task_id, requester_id, 'request_sent', 'Yêu cầu rút khỏi công việc.')
 
-        # Notify admins
         admins = self.user_repo.get_by_role('admin')
         if admins:
             self.notification_repo.create_bulk(
@@ -282,13 +254,20 @@ class TaskService:
         return req
 
     def delete_task(self, task_id, user_id=None):
-        # Admin direct delete
         if user_id:
             self.repo.add_history(task_id, user_id, 'delete', 'Xóa công việc bởi admin.')
         return self.repo.delete(task_id)
 
-    def get_task_history(self, task_id):
-        return [h.to_dict() for h in self.repo.get_task_history(task_id)]
+    def get_task_history(self, task_id, page=1, per_page=10):
+        paginated = self.repo.get_task_history(task_id, page=page, per_page=per_page)
+        return {
+            'history': [h.to_dict() for h in paginated.items],
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'current_page': paginated.page,
+            'has_next': paginated.has_next,
+            'has_prev': paginated.has_prev
+        }
 
     def get_pending_requests(self):
         return [r.to_dict() for r in self.repo.get_pending_requests()]
@@ -298,17 +277,12 @@ class TaskService:
         if not req: return None
         
         task = req.task
-        
         if status == 'approved':
             if req.request_type == 'assign':
-                # Add assignment
                 assignment = TaskAssignment(task_id=req.task_id, user_id=req.target_user_id)
-                from app.extensions import db
                 db.session.add(assignment)
                 db.session.commit()
                 self.repo.add_history(req.task_id, admin_id, 'approved', f'Đã phê duyệt giao công việc cho user {req.target_user_id}')
-                
-                # Notify user
                 self.notification_repo.create_notification(
                     user_id=req.target_user_id,
                     title='Công việc mới được phê duyệt',
@@ -317,35 +291,23 @@ class TaskService:
                     reference_type='task',
                     reference_id=task.id
                 )
-                
-                # Send email ONLY to the new member
-                from app.services.email_service import EmailService
-                from app.repositories.user_repository import UserRepository
-                user = UserRepository().get_by_id(req.target_user_id)
-                if user:
-                    EmailService.send_new_member_notification(task, user)
             elif req.request_type == 'delete':
-                # Delete task
                 self.delete_task(req.task_id, admin_id)
                 return True
             elif req.request_type == 'withdraw':
-                # Remove assignment
                 TaskAssignment.query.filter_by(task_id=req.task_id, user_id=req.target_user_id).delete()
-                from app.extensions import db
                 db.session.commit()
                 self.repo.add_history(req.task_id, admin_id, 'approved', f'Đã phê duyệt rút khỏi công việc cho user {req.target_user_id}')
         
         elif status == 'rejected':
             self.repo.add_history(req.task_id, admin_id, 'rejected', f'Admin đã từ chối yêu cầu. Ghi chú: {admin_note or "Không có"}')
 
-        # Notify requester
         self.notification_repo.create_notification(
             user_id=req.requester_id,
             title='Yêu cầu đã được xử lý',
             message=f'Yêu cầu "{req.request_type}" của bạn cho task "{task.title}" đã được {status}.',
             notification_type='info'
         )
-            
         return req
 
     def get_task_stats(self, user_id=None):
@@ -353,3 +315,78 @@ class TaskService:
 
     def get_overdue_tasks(self):
         return self.repo.get_overdue_tasks()
+
+    # Subtasks
+    def add_subtask(self, task_id, user_id, title):
+        st = self.repo.create_subtask(task_id, title)
+        self.repo.add_history(task_id, user_id, 'update', f'Đã thêm nhiệm vụ con: {title}')
+        socketio.emit('task_updated', {'task_id': task_id, 'action': 'subtask_add'}, room=f"task_{task_id}")
+        return st
+
+    def update_subtask(self, task_id, user_id, subtask_id, **kwargs):
+        st = self.repo.update_subtask(subtask_id, **kwargs)
+        self.repo.add_history(task_id, user_id, 'update', f'Đã cập nhật nhiệm vụ con ID {subtask_id}')
+        socketio.emit('task_updated', {'task_id': task_id, 'action': 'subtask_update'}, room=f"task_{task_id}")
+        return st
+
+    def delete_subtask(self, task_id, user_id, subtask_id):
+        info = self.repo.delete_subtask(subtask_id)
+        if info:
+            self.repo.add_history(task_id, user_id, 'update', f'Đã xóa nhiệm vụ con ID {subtask_id}')
+            socketio.emit('task_updated', {'task_id': task_id, 'action': 'subtask_delete'}, room=f"task_{task_id}")
+        return info
+
+    # Comments
+    def add_comment(self, task_id, user_id, content, parent_id=None):
+        c = self.repo.add_comment(task_id, user_id, content, parent_id)
+        # Notify assignees and creator
+        task = self.repo.get_by_id(task_id)
+        receivers = {a.user_id for a in task.assignments}
+        receivers.add(task.created_by)
+        
+        # If it's a reply, also notify the parent comment's author
+        if parent_id:
+            parent_comment = self.repo.get_comment(parent_id)
+            if parent_comment:
+                receivers.add(parent_comment.user_id)
+
+        receivers.remove(user_id) if user_id in receivers else None
+        
+        for rid in receivers:
+            self.notification_repo.create_notification(
+                user_id=rid,
+                title='Bình luận mới',
+                message=f'Có thảo luận mới trong task "{task.title}"',
+                notification_type='task',
+                reference_type='task',
+                reference_id=task.id
+            )
+        socketio.emit('task_updated', {'task_id': task_id, 'action': 'comment_add'}, room=f"task_{task_id}")
+        return c
+
+    def delete_comment(self, comment_id, user_id, role='student'):
+        comment = self.repo.get_comment(comment_id)
+        if not comment: return False
+        
+        # Check permission: own comment or admin
+        if role != 'admin' and comment.user_id != user_id:
+            return False
+        
+        task_id = comment.task_id
+        res = self.repo.delete_comment(comment_id)
+        if res:
+            socketio.emit('task_updated', {'task_id': task_id, 'action': 'comment_delete'}, room=f"task_{task_id}")
+        return res
+
+    # Attachments
+    def add_attachment(self, task_id, user_id, filename, file_path, file_type=None):
+        a = self.repo.add_attachment(task_id, filename, file_path, file_type)
+        self.repo.add_history(task_id, user_id, 'update', f'Đã đính kèm tài liệu: {filename}')
+        return a
+
+    def delete_attachment(self, task_id, user_id, attachment_id):
+        info = self.repo.delete_attachment(attachment_id)
+        if info:
+            self.repo.add_history(task_id, user_id, 'update', f'Đã xóa tài liệu đính kèm ID {attachment_id}')
+        return info
+

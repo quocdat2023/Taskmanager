@@ -21,7 +21,7 @@ const UserManage = {
             this.pagination.page = page;
             const queryParam = query ? `&q=${encodeURIComponent(query)}` : '';
             const url = `/admin/users?page=${page}&per_page=${this.pagination.perPage}${queryParam}`;
-            
+
             const data = await API.get(url);
             if (data) {
                 this.users = data.users || [];
@@ -61,20 +61,30 @@ const UserManage = {
                     <span class="badge ${this.getRoleBadgeClass(user.role)}">${this.getRoleLabel(user.role)}</span>
                 </td>
                 <td>${user.department || '<span class="text-muted">—</span>'}</td>
-                <td>
+                <!-- <td>
                     <div style="font-size:0.8rem;">
                         ${user.student_id ? `<div>MSV: <strong>${user.student_id}</strong></div>` : ''}
                         ${user.phone ? `<div>SĐT: ${user.phone}</div>` : ''}
                     </div>
-                </td>
+                </td> -->
                 <td>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" role="switch" 
-                               ${user.is_active ? 'checked' : ''} 
-                               onchange="UserManage.toggleActive(${user.id})">
-                        <label class="form-check-label text-secondary" style="font-size:0.75rem;">
-                            ${user.is_active ? 'Hoạt động' : 'Đã khóa'}
-                        </label>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" role="switch" 
+                                   ${user.is_active ? 'checked' : ''} 
+                                   onchange="UserManage.toggleActive(${user.id})">
+                            <label class="form-check-label text-secondary" style="font-size:0.75rem;">
+                                ${user.is_active ? 'Hoạt động' : 'Đã khóa'}
+                            </label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" 
+                                   ${user.is_approved ? 'checked' : ''} 
+                                   onchange="UserManage.toggleApprove(${user.id})">
+                            <label class="form-check-label ${user.is_approved ? 'text-success' : 'text-danger'}" style="font-size:0.75rem; font-weight: 500;">
+                                ${user.is_approved ? 'Đã duyệt' : 'Chờ duyệt'}
+                            </label>
+                        </div>
                     </div>
                 </td>
                 <td>
@@ -103,7 +113,7 @@ const UserManage = {
         }
 
         const { page, pages, total } = this.pagination;
-        
+
         let html = `
             <div class="text-muted" style="font-size: 0.85rem;">
                 Hiển thị <strong>${this.users.length}</strong> / <strong>${total}</strong> người dùng
@@ -240,11 +250,21 @@ const UserManage = {
         try {
             await API.put(`/admin/users/${userId}/toggle-active`);
             Toast.success('Cập nhật trạng thái thành công');
-            // Update local state to avoid full reload if possible, but for simplicity:
             this.loadUsers('', this.pagination.page);
         } catch (error) {
             Toast.error('Không thể cập nhật trạng thái');
-            this.loadUsers('', this.pagination.page); // Revert UI
+            this.loadUsers('', this.pagination.page);
+        }
+    },
+
+    async toggleApprove(userId) {
+        try {
+            const res = await API.put(`/admin/users/${userId}/toggle-approve`);
+            Toast.success(res.is_approved ? 'Đã phê duyệt tài khoản' : 'Đã gỡ phê duyệt tài khoản');
+            this.loadUsers('', this.pagination.page);
+        } catch (error) {
+            Toast.error('Không thể cập nhật trạng thái phê duyệt');
+            this.loadUsers('', this.pagination.page);
         }
     },
 

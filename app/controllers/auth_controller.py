@@ -17,12 +17,13 @@ def register():
         if not data.get(field):
             return jsonify({'error': f'{field} is required'}), 400
 
+    # Public registration is always 'student' role
     user, error = user_service.register(
         username=data['username'],
         email=data['email'],
         password=data['password'],
         full_name=data['full_name'],
-        role=data.get('role', 'student'),
+        role='student',
         phone=data.get('phone'),
         student_id=data.get('student_id'),
         department=data.get('department')
@@ -31,7 +32,23 @@ def register():
     if error:
         return jsonify({'error': error}), 400
 
-    return jsonify({'message': 'Registration successful', 'user': user.to_dict()}), 201
+    # Notify admins about new registration
+    try:
+        from app.models.notification import Notification
+        admins = User.query.filter_by(role='admin').all()
+        for admin in admins:
+            notif = Notification(
+                user_id=admin.id,
+                title='Tài khoản mới đăng ký',
+                message=f'Người dùng {user.full_name} ({user.username}) đã đăng ký và đang chờ phê duyệt.',
+                notification_type='info'
+            )
+            db.session.add(notif)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error creating admin notifications: {e}")
+
+    return jsonify({'message': 'Đăng ký thành công. Vui lòng chờ quản trị viên phê duyệt tài khoản để đăng nhập.', 'user': user.to_dict()}), 201
 
 
 @auth_bp.route('/login', methods=['POST'])

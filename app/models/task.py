@@ -8,16 +8,19 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done
+    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done, approved
     priority = db.Column(db.String(20), nullable=False, default='medium')  # low, medium, high, urgent
     due_date = db.Column(db.DateTime, nullable=True)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    course_name = db.Column(db.String(150), nullable=True)  # Tên môn học
-    course_code = db.Column(db.String(20), nullable=True)  # Mã môn
-    class_group = db.Column(db.String(50), nullable=True)  # Nhóm lớp
-    semester = db.Column(db.String(20), nullable=True)  # Học kỳ (VD: HK1, HK2, HK3)
-    academic_year = db.Column(db.String(20), nullable=True)  # Năm học (VD: 2023-2024)
-    attachment = db.Column(db.String(256), nullable=True)  # File đính kèm
+    course_name = db.Column(db.String(150), nullable=True)
+    course_code = db.Column(db.String(20), nullable=True)
+    class_group = db.Column(db.String(50), nullable=True)
+    semester = db.Column(db.String(20), nullable=True)
+    academic_year = db.Column(db.String(20), nullable=True)
+    attachment = db.Column(db.String(256), nullable=True)
+    progress = db.Column(db.Integer, default=0)
+    estimated_time = db.Column(db.String(50), nullable=True)
+    actual_time = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -25,6 +28,9 @@ class Task(db.Model):
     assignments = db.relationship('TaskAssignment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
     history = db.relationship('TaskHistory', backref='task', lazy='dynamic', cascade='all, delete-orphan')
     requests = db.relationship('TaskRequest', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    subtasks = db.relationship('SubTask', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    comments = db.relationship('TaskComment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    task_attachments = db.relationship('TaskAttachment', backref='task', lazy='dynamic', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -42,9 +48,15 @@ class Task(db.Model):
             'semester': self.semester,
             'academic_year': self.academic_year,
             'attachment': self.attachment,
+            'progress': self.progress,
+            'estimated_time': self.estimated_time,
+            'actual_time': self.actual_time,
             'created_at': self.created_at.isoformat() + 'Z' if self.created_at else None,
             'updated_at': self.updated_at.isoformat() + 'Z' if self.updated_at else None,
             'assignees': [a.to_dict() for a in self.assignments],
+            'subtasks': [s.to_dict() for s in self.subtasks],
+            'comments': [c.to_dict() for c in self.comments],
+            'attachments': [a.to_dict() for a in self.task_attachments],
         }
 
     def __repr__(self):
@@ -57,7 +69,7 @@ class TaskAssignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done
+    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done, approved
     note = db.Column(db.Text, nullable=True)
     submitted_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -74,25 +86,86 @@ class TaskAssignment(db.Model):
         }
 
 
-class TaskHistory(db.Model):
-    __tablename__ = 'task_history'
+class SubTask(db.Model):
+    __tablename__ = 'sub_tasks'
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    is_done = db.Column(db.Boolean, default=False)
+    progress = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'task_id': self.task_id,
+            'title': self.title,
+            'is_done': self.is_done,
+            'progress': self.progress
+        }
+
+
+class TaskComment(db.Model):
+    __tablename__ = 'task_comments'
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    action = db.Column(db.String(100), nullable=False)  # 'create', 'update', 'status_change', 'assigned', 'request_sent', etc.
-    details = db.Column(db.Text, nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('task_comments.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
     user = db.relationship('User', foreign_keys=[user_id])
+    replies = db.relationship('TaskComment', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
             'id': self.id,
             'task_id': self.task_id,
             'user_id': self.user_id,
-            'user_name': self.user.full_name if self.user else 'Unknown',
+            'user_name': self.author.full_name if self.author else 'Unknown',
+            'content': self.content,
+            'parent_id': self.parent_id,
+            'created_at': self.created_at.isoformat() + 'Z'
+        }
+
+
+class TaskAttachment(db.Model):
+    __tablename__ = 'task_attachments'
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    filename = db.Column(db.String(256), nullable=False)
+    file_path = db.Column(db.String(512), nullable=False)
+    file_type = db.Column(db.String(50), nullable=True)
+    uploaded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'filename': self.filename,
+            'file_path': self.file_path,
+            'file_type': self.file_type,
+            'uploaded_at': self.uploaded_at.isoformat() + 'Z'
+        }
+
+
+class TaskHistory(db.Model):
+    __tablename__ = 'task_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    action = db.Column(db.String(100), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationship defined by backref 'performer' in User model
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'task_id': self.task_id,
+            'user_id': self.user_id,
+            'user_name': self.performer.full_name if self.performer else 'Unknown',
             'action': self.action,
             'details': self.details,
             'created_at': self.created_at.isoformat() + 'Z',
@@ -106,17 +179,14 @@ class TaskRequest(db.Model):
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
     requester_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     request_type = db.Column(db.String(20), nullable=False)  # 'assign', 'delete', 'withdraw'
-    target_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # For 'assign'
-    status = db.Column(db.String(20), default='pending')  # 'pending', 'approved', 'rejected'
+    target_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    status = db.Column(db.String(20), default='pending')
     note = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     processed_at = db.Column(db.DateTime, nullable=True)
     processed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-
-    # Relationships
-    requester = db.relationship('User', foreign_keys=[requester_id])
-    target_user = db.relationship('User', foreign_keys=[target_user_id])
-    processor = db.relationship('User', foreign_keys=[processed_by])
+    
+    # Relationships defined by backrefs in User model (sender, target, admin_proc)
 
     def to_dict(self):
         return {
@@ -124,12 +194,13 @@ class TaskRequest(db.Model):
             'task_id': self.task_id,
             'task_title': self.task.title if self.task else 'N/A',
             'requester_id': self.requester_id,
-            'requester_name': self.requester.full_name if self.requester else 'Unknown',
+            'requester_name': self.sender.full_name if self.sender else 'Unknown',
             'request_type': self.request_type,
             'target_user_id': self.target_user_id,
-            'target_user_name': self.target_user.full_name if self.target_user else None,
+            'target_user_name': self.target.full_name if self.target else None,
             'status': self.status,
             'note': self.note,
             'created_at': self.created_at.isoformat() + 'Z',
             'processed_at': self.processed_at.isoformat() + 'Z' if self.processed_at else None,
         }
+

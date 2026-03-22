@@ -38,9 +38,14 @@ class BaseRepository:
     def delete(self, id):
         instance = self.get_by_id(id)
         if instance:
-            db.session.delete(instance)
-            db.session.commit()
-            return True
+            try:
+                db.session.delete(instance)
+                db.session.commit()
+                return True
+            except Exception as e:
+                db.session.rollback()
+                print(f"Error in {self.model.__name__} repository delete: {str(e)}")
+                raise e
         return False
 
     def count(self, **filters):

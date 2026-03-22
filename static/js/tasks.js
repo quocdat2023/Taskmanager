@@ -10,6 +10,7 @@ const Tasks = {
     activeAcademicYear: null,
 
     /* ── Pagination state ── */
+    activeTaskId: null,
     pagination: {
         page: 1,
         perPage: 12,   // cards per page
@@ -25,6 +26,16 @@ const Tasks = {
     lazyPage: 1,
     lazyDone: false,
     _searchTimer: null,
+
+    /* ── History lazy-load state ── */
+    _historyItems: [],
+    _historyPage: 1,
+    _historyPerPage: 10,
+    _historyTotal: 0,
+    _historyPages: 0,
+    _historyHasNext: false,
+    _historyLoading: false,
+    _historyTaskId: null,
     initialized: false,
     dragDropInitialized: false,
     notificationListenerAdded: false,
@@ -41,6 +52,12 @@ const Tasks = {
             this.loadAcademicYears(),
             this.loadMe()
         ]);
+        // If we are on the Kanban board, we should load more tasks at once
+        const kanban = document.getElementById('kanban-board');
+        if (kanban) {
+            this.pagination.perPage = 100;
+        }
+
         await this.loadTasks(1);
 
         /* Determine display mode:
@@ -57,10 +74,24 @@ const Tasks = {
         this.initDragDrop();
 
         // Realtime refresh on notification
+        // Realtime refresh on notification & task update
         if (!this.notificationListenerAdded) {
             window.addEventListener('new-notification', () => {
                 this.loadTasks(this.pagination.page);
             });
+
+            window.addEventListener('task-realtime-update', (e) => {
+                const { task_id, action } = e.detail;
+                // 1. Always refresh the main list/board
+                this.loadTasks(this.pagination.page);
+
+                // 2. If the updated task is currently open in detail modal, refresh the modal content
+                if (this.activeTaskId === task_id) {
+                    console.log(`Realtime update for active task ${task_id}: ${action}`);
+                    this.showDetail(task_id, true); // true = refresh mode
+                }
+            });
+
             this.notificationListenerAdded = true;
         }
 
@@ -280,10 +311,10 @@ const Tasks = {
     },
 
     _cardHtml(task) {
-        const priorityClass = `priority-${task.priority}`;
-        const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done';
+        const priorityClass = `p-${task.priority}`;
+        const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== 'done' && task.status !== 'approved';
         const dueBadge = task.due_date
-            ? `<span class="task-card-meta-item ${isOverdue ? 'text-danger' : ''}">
+            ? `<span class="meta-item ${isOverdue ? 'text-danger' : ''}">
                    <i class="far fa-calendar-alt"></i> ${formatDate(task.due_date)}
                </span>`
             : '';
@@ -305,26 +336,45 @@ const Tasks = {
             </button>
         ` : '';
 
+        // Progress Bar
+        const progress = task.progress || 0;
+        const subtasks = task.subtasks || [];
+        const doneSubtasks = subtasks.filter(st => st.is_done).length;
+        const subtaskText = subtasks.length > 0 ? `${doneSubtasks}/${subtasks.length} nhiệm vụ con` : 'Tiến độ';
+
+        const progressBar = `
+            <div class="kanban-card-progress">
+                <div class="progress-container">
+                    <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                </div>
+                <div class="progress-text">
+                    <span>${subtaskText}</span>
+                    <span>${progress}%</span>
+                </div>
+            </div>
+        `;
+
         return `
-        <div class="task-card ${priorityClass}" onclick="Tasks.showDetail(${task.id})">
+        <div class="task-card kanban-card ${priorityClass}" onclick="Tasks.showDetail(${task.id})">
             <div class="task-card-header">
                 <div class="task-card-title">${task.title}</div>
                 ${getPriorityBadge(task.priority)}
             </div>
 
-            ${task.description ? `<div class="task-card-desc">${task.description}</div>` : ''}
+            ${task.description ? `<div class="task-card-desc" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">${task.description}</div>` : ''}
 
-            <div class="task-card-meta">
-                ${getStatusBadge(task.status)}
+            ${progressBar}
+
+            <div class="kanban-card-meta">
                 ${dueBadge}
-                ${task.course_name ? `<span class="task-card-meta-item"><i class="fas fa-book"></i> ${task.course_name}</span>` : ''}
-                ${task.class_group ? `<span class="task-card-meta-item"><i class="fas fa-users"></i> ${task.class_group}</span>` : ''}
+                ${task.estimated_time ? `<span class="meta-item"><i class="far fa-clock"></i> Dự kiến: ${task.estimated_time}</span>` : ''}
+                ${task.course_name ? `<span class="meta-item"><i class="fas fa-book"></i> ${task.course_name}</span>` : ''}
             </div>
 
-            <div class="task-card-footer">
-                <div class="task-card-assignees">
+            <div class="kanban-card-footer">
+                <div class="kanban-card-assignees">
                     ${assigneeAvatars}${extraAssignees}
-                    ${!(task.assignees && task.assignees.length) ? '<span style="font-size:0.75rem;color:var(--text-muted);">Chưa giao</span>' : ''}
+                    ${!(task.assignees && task.assignees.length) ? '<span style="font-size:0.7rem;color:var(--text-muted);">Chưa giao</span>' : ''}
                 </div>
                 <div class="task-card-actions">
                     ${actionBtns}
@@ -522,13 +572,15 @@ const Tasks = {
        KANBAN BOARD
     ================================================================ */
     renderKanban() {
-        const statuses = ['todo', 'in_progress', 'done'];
+        const statuses = ['todo', 'in_progress', 'done', 'approved'];
+        const role = sessionStorage.getItem('role');
+        const currentUserId = parseInt(sessionStorage.getItem('user_id'));
+
         statuses.forEach(status => {
             const body = document.getElementById(`kanban-${status}`);
             const countEl = document.getElementById(`count-${status}`);
             if (!body) return;
 
-            const currentUserId = parseInt(sessionStorage.getItem('user_id'));
             const filteredTasks = this.tasks.filter(t => {
                 const myAssignment = t.assignees?.find(a => a.user_id === currentUserId);
                 const effectiveStatus = myAssignment ? myAssignment.status : t.status;
@@ -537,33 +589,68 @@ const Tasks = {
             if (countEl) countEl.textContent = filteredTasks.length;
 
             if (filteredTasks.length === 0) {
-                body.innerHTML = `<div class="empty-state" style="padding:30px;"><p style="font-size:0.8rem;color:var(--text-muted);opacity:0.6;">Kéo thả công việc vào đây</p></div>`;
+                body.innerHTML = `<div class="empty-state" style="padding:40px 20px; text-align:center;">
+                    <i class="fas fa-box-open" style="font-size:1.5rem; opacity:0.2; margin-bottom:10px; display:block;"></i>
+                    <p style="font-size:0.75rem;color:var(--text-muted);opacity:0.6;margin:0;">Trống</p>
+                </div>`;
                 return;
             }
 
-            body.innerHTML = filteredTasks.map(task => `
-                <div class="kanban-card" draggable="true" data-task-id="${task.id}"
+            body.innerHTML = filteredTasks.map(task => {
+                const priorityClass = `p-${task.priority}`;
+                const progress = task.progress || 0;
+
+                let approveActions = '';
+                // Only show approve/reject for cards in 'done' column AND IF user is admin/teacher
+                if (status === 'done' && (role === 'admin' || role === 'teacher')) {
+                    approveActions = `
+                        <div class="approve-actions" onclick="event.stopPropagation()">
+                            <button class="btn-approve" onclick="Tasks.updateStatus(${task.id}, 'approved')">
+                                <i class="fas fa-check"></i> Duyệt
+                            </button>
+                            <button class="btn-reject" onclick="Tasks.updateStatus(${task.id}, 'in_progress')">
+                                <i class="fas fa-undo"></i> Từ chối
+                            </button>
+                        </div>
+                    `;
+                }
+
+                return `
+                <div class="kanban-card ${priorityClass}" draggable="true" data-task-id="${task.id}"
                      ondragstart="Tasks.onDragStart(event, ${task.id})"
                      onclick="Tasks.showDetail(${task.id})">
-                    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
-                        ${getPriorityBadge(task.priority)}
-                        ${task.due_date ? `<span style="font-size:0.7rem;color:var(--text-muted);"><i class="far fa-clock"></i> ${formatDate(task.due_date)}</span>` : ''}
+                    
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">${task.course_code || 'TASK'}</span>
+                        ${task.due_date ? `<span style="font-size:0.7rem;color:var(--text-muted); white-space:nowrap;"><i class="far fa-clock"></i> ${formatDate(task.due_date)}</span>` : ''}
                     </div>
+
                     <div class="kanban-card-title">${task.title}</div>
-                    ${task.course_name ? `<div class="kanban-card-meta"><i class="fas fa-book"></i> ${task.course_name}</div>` : ''}
-                    <div class="d-flex justify-content-between align-items-center mt-2">
-                        <div class="kanban-card-assignees">
-                            ${(task.assignees || []).slice(0, 4).map(a => `<span class="kanban-card-assignee" title="${a.user_name}">${getInitials(a.user_name)}</span>`).join('')}
+                    
+                    <div class="kanban-card-progress">
+                        <div class="progress-container">
+                            <div class="progress-bar-fill" style="width: ${progress}%"></div>
                         </div>
-                        <div style="display:flex;gap:4px;">
-                            ${(sessionStorage.getItem('role') === 'admin' || sessionStorage.getItem('role') === 'teacher') ? `
-                                <button class="btn-glass p-1" style="font-size:0.7rem;width:26px;height:26px;" onclick="event.stopPropagation(); Tasks.showEditModal(${task.id})"><i class="fas fa-edit"></i></button>
-                                <button class="btn-danger p-1" style="font-size:0.7rem;width:26px;height:26px;" onclick="event.stopPropagation(); Tasks.deleteTask(${task.id})"><i class="fas fa-trash"></i></button>
-                            ` : ''}
+                        <div class="progress-text">
+                            <span>${progress}%</span>
+                            <span>${(task.subtasks || []).filter(st => st.is_done).length}/${(task.subtasks || []).length} hoàn thành</span>
                         </div>
                     </div>
+
+                    <div class="kanban-card-footer">
+                        <div class="kanban-card-assignees">
+                            ${(task.assignees || []).slice(0, 3).map(a => `<span class="kanban-card-assignee" title="${a.user_name}">${getInitials(a.user_name)}</span>`).join('')}
+                            ${(task.assignees || []).length > 3 ? `<span style="font-size:0.65rem; color:var(--text-muted); margin-left:4px;">+${task.assignees.length - 3}</span>` : ''}
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            ${(task.attachments || []).length > 0 ? `<i class="fas fa-paperclip" style="font-size:0.75rem; opacity:0.5;"></i>` : ''}
+                            ${(task.comments || []).length > 0 ? `<i class="far fa-comment" style="font-size:0.75rem; opacity:0.5;"></i>` : ''}
+                        </div>
+                    </div>
+
+                    ${approveActions}
                 </div>
-            `).join('');
+            `}).join('');
         });
     },
 
@@ -655,6 +742,9 @@ const Tasks = {
         document.getElementById('task-description').value = task.description || '';
         document.getElementById('task-priority').value = task.priority;
         document.getElementById('task-status').value = task.status;
+        if (document.getElementById('task-progress')) document.getElementById('task-progress').value = task.progress || 0;
+        if (document.getElementById('task-estimated-time')) document.getElementById('task-estimated-time').value = task.estimated_time || '';
+        if (document.getElementById('task-actual-time')) document.getElementById('task-actual-time').value = task.actual_time || '';
         document.getElementById('task-due-date').value = task.due_date ? task.due_date.split('T')[0] : '';
         document.getElementById('task-course-name').value = task.course_name || '';
         document.getElementById('task-course-code').value = task.course_code || '';
@@ -678,6 +768,9 @@ const Tasks = {
             description: document.getElementById('task-description').value,
             priority: document.getElementById('task-priority').value,
             status: document.getElementById('task-status').value,
+            progress: parseInt(document.getElementById('task-progress')?.value) || 0,
+            estimated_time: document.getElementById('task-estimated-time')?.value || '',
+            actual_time: document.getElementById('task-actual-time')?.value || '',
             due_date: document.getElementById('task-due-date').value || null,
             course_name: document.getElementById('task-course-name').value,
             course_code: document.getElementById('task-course-code').value,
@@ -691,8 +784,14 @@ const Tasks = {
                 await API.put(`/tasks/${taskId}`, payload);
                 Toast.success('Cập nhật công việc thành công');
             } else {
-                await API.post('/tasks', payload);
+                const res = await API.post('/tasks', payload);
                 Toast.success('Tạo công việc thành công');
+                // Show email status
+                if (res.email_sent) {
+                    Toast.success('📧 Email thông báo đã được gửi');
+                } else if (res.email_error) {
+                    Toast.error('⚠️ Không gửi được email: ' + res.email_error);
+                }
             }
             bootstrap.Modal.getOrCreateInstance(document.getElementById('taskModal')).hide();
             await this.loadTasks(1);
@@ -726,72 +825,216 @@ const Tasks = {
         }
     },
 
-    async showDetail(taskId) {
-        const task = this.tasks.find(t => t.id === taskId);
-        if (!task) return;
+    async showDetail(taskId, isRefresh = false) {
+        if (!isRefresh) {
+            // Leave previous task room if any
+            if (this.activeTaskId && Realtime.socket) {
+                Realtime.socket.emit('leave_task', { task_id: this.activeTaskId });
+            }
+            this.activeTaskId = taskId;
+            // Join new task room
+            if (Realtime.socket) {
+                Realtime.socket.emit('join_task', { task_id: taskId });
+            }
+        }
 
-        // Fetch history
-        let history = [];
+        const task = this.tasks.find(t => t.id === taskId);
+        if (!task && !isRefresh) return;
+
+        // Fetch latest task data to get subtasks, comments, attachments
+        let updatedTask = task;
         try {
-            const res = await API.get(`/tasks/${taskId}/history`);
-            history = res.history || [];
-        } catch (e) { console.error('History load failed', e); }
+            const res = await API.get(`/tasks/${taskId}`);
+            updatedTask = res.task;
+        } catch (e) { }
+
+        // Reset history state for lazy load
+        this._historyItems = [];
+        this._historyPage = 1;
+        this._historyTotal = 0;
+        this._historyPages = 0;
+        this._historyHasNext = false;
+        this._historyLoading = false;
+        this._historyTaskId = taskId;
 
         const currentUserId = parseInt(sessionStorage.getItem('user_id'));
-        const isAssigned = task.assignees?.some(a => a.user_id === currentUserId);
+        const role = sessionStorage.getItem('role');
+
+        // Remember which tab is currently active before re-rendering
+        const activeTabHref = isRefresh
+            ? document.querySelector('#taskDetailBody .nav-link.active')?.getAttribute('href') || '#detail-info'
+            : '#detail-info';
+
+        const _isTab = (tabId) => activeTabHref === tabId;
 
         const detailHtml = `
-            <ul class="nav nav-tabs mb-3" role="tablist">
-                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#detail-info">Chi tiết</a></li>
-                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#detail-history">Lịch sử</a></li>
+            <ul class="nav nav-pills nav-justified mb-4 custom-nav-pills" role="tablist">
+                <li class="nav-item"><a class="nav-link ${_isTab('#detail-info') ? 'active' : ''}" data-bs-toggle="tab" href="#detail-info"><i class="fas fa-info-circle me-1"></i> Thông tin</a></li>
+                <li class="nav-item"><a class="nav-link ${_isTab('#detail-subtasks') ? 'active' : ''}" data-bs-toggle="tab" href="#detail-subtasks"><i class="fas fa-tasks me-1"></i> Mục tiêu (${(updatedTask.subtasks || []).length})</a></li>
+                <li class="nav-item"><a class="nav-link ${_isTab('#detail-comments') ? 'active' : ''}" data-bs-toggle="tab" href="#detail-comments"><i class="fas fa-comments me-1"></i> Thảo luận</a></li>
+                <!-- <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#detail-attachments"><i class="fas fa-paperclip me-1"></i> Tài liệu</a></li> -->
+                <li class="nav-item"><a class="nav-link ${_isTab('#detail-history') ? 'active' : ''}" data-bs-toggle="tab" href="#detail-history"><i class="fas fa-history me-1"></i> Lịch sử</a></li>
             </ul>
             <div class="tab-content">
-                <div class="tab-pane fade show active" id="detail-info">
-                    <div style="margin-bottom:20px;">
-                        <div style="display:flex;gap:8px;margin-bottom:16px;">
-                            ${getStatusBadge(task.status)} ${getPriorityBadge(task.priority)}
+                <!-- INFO TAB -->
+                <div class="tab-pane fade ${_isTab('#detail-info') ? 'show active' : ''}" id="detail-info">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h4 class="fw-bold mb-0">${updatedTask.title}</h4>
+                            ${getPriorityBadge(updatedTask.priority)}
                         </div>
-                        <h5 style="font-weight:700;margin-bottom:12px;">${task.title}</h5>
-                        <p style="color:var(--text-secondary);font-size:0.9rem;line-height:1.7;">${task.description || 'Không có mô tả'}</p>
+                        <p class="text-secondary" style="white-space: pre-wrap; font-size:0.95rem;">${updatedTask.description || 'Không có mô tả'}</p>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.85rem;">
-                        <div><span style="color:var(--text-muted);">Người tạo:</span> <strong>${task.creator_name || ''}</strong></div>
-                        <div><span style="color:var(--text-muted);">Hạn:</span> <strong>${task.due_date ? formatDate(task.due_date) : '—'}</strong></div>
-                        <div><span style="color:var(--text-muted);">Môn học:</span> <strong>${task.course_name || '—'}</strong></div>
-                        <div><span style="color:var(--text-muted);">Nhóm lớp:</span> <strong>${task.class_group || '—'}</strong></div>
-                        <div><span style="color:var(--text-muted);">Học kỳ:</span> <strong>${task.semester || '—'}</strong></div>
-                        <div><span style="color:var(--text-muted);">Năm học:</span> <strong>${task.academic_year || '—'}</strong></div>
-                        <div><span style="color:var(--text-muted);">Tạo lúc:</span> <strong>${formatDateTime(task.created_at)}</strong></div>
+
+                    <!-- Progress Section -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                             <span class="fw-bold" style="font-size:0.85rem;">TIẾN ĐỘ TỔNG THỂ</span>
+                             <span class="fw-bold text-primary">${updatedTask.progress}%</span>
+                        </div>
+                        <div class="progress-container" style="height:10px;">
+                            <div class="progress-bar-fill" style="width: ${updatedTask.progress}%"></div>
+                        </div>
                     </div>
-                    ${task.assignees && task.assignees.length > 0 ? `
-                        <div style="margin-top:20px;">
-                            <span style="color:var(--text-muted);font-size:0.8rem;">Người được giao:</span>
-                            <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:8px;">
-                                ${task.assignees.map(a => `
-                                    <div style="display:flex;align-items:center;gap:8px;background:var(--glass-bg);padding:6px 12px;border-radius:var(--radius-sm);border:1px solid var(--border-color);">
-                                        <span class="kanban-card-assignee" style="width:24px;height:24px;font-size:0.6rem;margin:0;">${getInitials(a.user_name)}</span>
-                                        <div style="display:flex;flex-direction:column;">
-                                            <span style="font-size:0.8rem;">${a.user_name}</span>
-                                            <span style="font-size:0.65rem; color:var(--text-muted);">${getStatusLabel(a.status)}</span>
-                                        </div>
-                                    </div>
-                                `).join('')}
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="p-3 rounded border bg-light">
+                                <div class="text-muted small mb-1 uppercase fw-bold">Trạng thái</div>
+                                <div>${getStatusBadge(updatedTask.status)}</div>
                             </div>
                         </div>
-                    ` : ''}
-                </div>
-                <div class="tab-pane fade" id="detail-history">
-                    <div class="history-list" style="max-height:400px; overflow-y:auto; font-size:0.85rem;">
-                        ${history.length > 0 ? history.map(h => `
-                            <div class="history-item mb-3 pb-2 border-bottom" style="border-color:var(--border-color)!important;">
-                                <div class="d-flex justify-content-between">
-                                    <strong style="color:var(--accent-red);">${h.user_name}</strong>
-                                    <span class="text-muted" style="font-size:0.75rem;">${formatDateTime(h.created_at)}</span>
+                        <div class="col-6">
+                            <div class="p-3 rounded border bg-light">
+                                <div class="text-muted small mb-1 uppercase fw-bold">Hạn chót</div>
+                                <div class="fw-bold ${new Date(updatedTask.due_date) < new Date() ? 'text-danger' : ''}">
+                                    <i class="far fa-calendar-alt me-1"></i> ${updatedTask.due_date ? formatDate(updatedTask.due_date) : '—'}
                                 </div>
-                                <div class="mt-1"><span class="badge bg-secondary" style="font-size:0.65rem;">${Tasks.getActionLabel(h.action)}</span></div>
-                                <div class="mt-1 text-secondary">${h.details || ''}</div>
                             </div>
-                        `).join('') : '<p class="text-muted">Chưa có lịch sử thay đổi</p>'}
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded border bg-light">
+                                <div class="text-muted small mb-1 uppercase fw-bold">Thời gian dự kiến</div>
+                                <div class="fw-bold"><i class="far fa-clock me-1"></i> ${updatedTask.estimated_time || '—'}</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded border bg-light">
+                                <div class="text-muted small mb-1 uppercase fw-bold">Thời gian thực tế</div>
+                                <div class="fw-bold"><i class="fas fa-stopwatch me-1"></i> ${updatedTask.actual_time || '—'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3">
+                        <h6 class="fw-bold mb-3 uppercase small text-muted">Phân công & Môn học</h6>
+                        <div class="row g-2 text-secondary small">
+                             <div class="col-6">Môn: <strong>${updatedTask.course_name || '—'}</strong> (${updatedTask.course_code || '—'})</div>
+                             <div class="col-6">Nhóm: <strong>${updatedTask.class_group || '—'}</strong></div>
+                             <div class="col-6">Học kỳ: <strong>${updatedTask.semester || '—'}</strong></div>
+                             <div class="col-6">Năm học: <strong>${updatedTask.academic_year || '—'}</strong></div>
+                        </div>
+
+                        <div class="mt-3 d-flex flex-wrap gap-2">
+                            ${(updatedTask.assignees || []).map(a => `
+                                <div class="d-flex align-items-center gap-2 bg-white border rounded px-2 py-1 shadow-sm">
+                                    <span class="kanban-card-assignee" style="width:24px;height:24px;font-size:0.6rem;margin:0;">${getInitials(a.user_name)}</span>
+                                    <span style="font-size:0.8rem; font-weight:600;">${a.user_name}</span>
+                                    <span class="badge ${a.status === 'done' ? 'bg-success' : 'bg-secondary'}" style="font-size:0.6rem;">${getStatusLabel(a.status)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${(updatedTask.assignees || []).some(a => a.user_id === currentUserId) && role !== 'admin' ? `
+                            <div class="mt-4 text-center">
+                                <button class="btn btn-outline-danger btn-sm" onclick="Tasks.withdrawTask(${updatedTask.id})">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Rút khỏi task
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- SUBTASKS TAB -->
+                <div class="tab-pane fade ${_isTab('#detail-subtasks') ? 'show active' : ''}" id="detail-subtasks">
+                    <div class="d-flex gap-2 mb-3">
+                        <input type="text" id="new-subtask-title" class="form-control-custom py-2" placeholder="Thêm nhiệm vụ mới...">
+                        <button class="btn-primary-custom" onclick="Tasks.addSubtask(${updatedTask.id})">Thêm</button>
+                    </div>
+                    <div id="subtasks-list" class="list-group list-group-flush">
+                        ${(updatedTask.subtasks || []).map(st => `
+                            <div class="list-group-item d-flex align-items-center justify-content-between py-2 border-bottom-0">
+                                <div class="form-check d-flex align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" ${st.is_done ? 'checked' : ''} 
+                                           onchange="Tasks.toggleSubtask(${updatedTask.id}, ${st.id}, this.checked)">
+                                    <span class="${st.is_done ? 'text-decoration-line-through text-muted' : ''}" style="font-size:0.95rem;">${st.title}</span>
+                                </div>
+                                <button class="btn text-danger p-1" onclick="Tasks.deleteSubtask(${updatedTask.id}, ${st.id})"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        `).join('')}
+                        ${(updatedTask.subtasks || []).length === 0 ? '<p class="text-center text-muted my-3">Chưa có nhiệm vụ con</p>' : ''}
+                    </div>
+                </div>
+
+                <!-- COMMENTS TAB -->
+                <div class="tab-pane fade ${_isTab('#detail-comments') ? 'show active' : ''}" id="detail-comments">
+                    <div class="mb-3">
+                         <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-muted uppercase">Thảo luận & Phản hồi</span>
+                         </div>
+                         <div id="reply-to-alert" class="alert alert-info py-2 px-3 mb-2 d-none d-flex justify-content-between align-items-center">
+                            <span class="small">Đang trả lời: <strong id="reply-to-user"></strong></span>
+                            <button type="button" class="btn-close" style="font-size:0.5rem;" onclick="Tasks.cancelReply()"></button>
+                         </div>
+                         <textarea id="comment-content" class="form-control-custom" rows="2" placeholder="Viết phản hồi hoặc ghi chú..."></textarea>
+                         <div class="text-end mt-2">
+                             <input type="hidden" id="comment-parent-id" value="">
+                             <button class="btn-primary-custom" onclick="Tasks.addComment(${updatedTask.id})">Gửi bình luận</button>
+                         </div>
+                    </div>
+                    <div id="comments-list" class="mt-4" style="max-height:450px; overflow-y:auto; padding-right:5px;">
+                        ${this.renderCommentsTree(updatedTask.comments || [], currentUserId, role, updatedTask.id)}
+                    </div>
+                </div>
+
+                <!-- ATTACHMENTS TAB -->
+                <div class="tab-pane fade" id="detail-attachments">
+                    <div class="mb-4 text-center p-4 border-dashed rounded" style="border: 2px dashed var(--border-color);">
+                        <i class="fas fa-cloud-upload-alt text-muted mb-2" style="font-size:2rem; opacity:0.3;"></i>
+                        <p class="small text-muted mb-3">Tải lên tài liệu hoặc ảnh minh họa (Max 16MB)</p>
+                        <input type="file" id="attachment-file" class="d-none" onchange="Tasks.uploadAttachment(${updatedTask.id})">
+                        <button class="btn-glass" onclick="document.getElementById('attachment-file').click()"><i class="fas fa-paperclip"></i> Chọn tệp tin</button>
+                    </div>
+                    <div id="attachments-list">
+                        ${(updatedTask.attachments || []).map(a => `
+                            <div class="d-flex align-items-center justify-content-between p-3 border rounded mb-2 bg-white">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="sidebar-user-avatar bg-light text-primary" style="width:32px; height:32px;">
+                                        <i class="${this.getFileIcon(a.file_type)}"></i>
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <a href="/uploads/${a.stored_name}" target="_blank" class="fw-bold small text-decoration-none">${a.file_name}</a>
+                                        <span class="text-muted" style="font-size:0.65rem;">${formatDateTime(a.created_at)} • ${a.user_name}</span>
+                                    </div>
+                                </div>
+                                <button class="btn text-danger p-1" onclick="Tasks.deleteAttachment(${updatedTask.id}, ${a.id})"><i class="fas fa-times"></i></button>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- HISTORY TAB -->
+                <div class="tab-pane fade ${_isTab('#detail-history') ? 'show active' : ''}" id="detail-history">
+                    <div id="history-items-container" class="history-list"></div>
+                    <div id="history-load-more" class="text-center py-3" style="display:none;">
+                        <button class="btn-glass" onclick="Tasks.loadMoreHistory()" id="history-load-more-btn">
+                            <i class="fas fa-arrow-down me-1"></i> Tải thêm lịch sử
+                        </button>
+                    </div>
+                    <div id="history-pagination-bar" class="d-flex justify-content-between align-items-center mt-2 px-1" style="display:none;"></div>
+                    <div id="history-loading-spinner" class="text-center py-4" style="display:none;">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <span class="ms-2 text-muted small">Đang tải lịch sử...</span>
                     </div>
                 </div>
             </div>
@@ -799,14 +1042,338 @@ const Tasks = {
 
         document.getElementById('taskDetailBody').innerHTML = detailHtml;
 
-        // Add footer buttons
-        let footerHtml = '<button type="button" class="btn-glass" data-bs-dismiss="modal">Đóng</button>';
-        if (isAssigned) {
-            footerHtml += `<button type="button" class="btn-glass btn-sm" onclick="Tasks.withdrawTask(${task.id})"><i class="fas fa-sign-out-alt me-1"></i>Rút khỏi task</button>`;
-        }
-        document.getElementById('taskDetailFooter').innerHTML = footerHtml;
+        if (!isRefresh) {
+            const modalEl = document.getElementById('taskDetailModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
 
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('taskDetailModal')).show();
+            // Handle modal close to leave room
+            modalEl.addEventListener('hidden.bs.modal', () => {
+                if (this.activeTaskId && Realtime.socket) {
+                    Realtime.socket.emit('leave_task', { task_id: this.activeTaskId });
+                }
+                this.activeTaskId = null;
+            }, { once: true });
+        }
+
+        // Lazy-load history when tab is clicked
+        const historyTab = document.querySelector('a[href="#detail-history"]');
+        if (historyTab) {
+            historyTab.addEventListener('shown.bs.tab', () => {
+                if (this._historyItems.length === 0 && !this._historyLoading) {
+                    this.loadHistory(1);
+                }
+            });
+        }
+
+        // Attach Enter key for subtasks
+        const subtaskInput = document.getElementById('new-subtask-title');
+        if (subtaskInput) {
+            subtaskInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.addSubtask(updatedTask.id);
+                }
+            });
+        }
+    },
+
+    /* ================================================================
+       SUBTASKS HANDLERS
+    ================================================================ */
+    async addSubtask(taskId) {
+        const titleEl = document.getElementById('new-subtask-title');
+        const title = titleEl.value.trim();
+        if (!title) return;
+        try {
+            await API.post(`/tasks/${taskId}/subtasks`, { title });
+            titleEl.value = '';
+            Toast.success('Đã thêm nhiệm vụ con');
+            this.showDetail(taskId);
+            this.loadTasks(this.pagination.page);
+        } catch (e) { Toast.error('Lỗi khi thêm nhiệm vụ con'); }
+    },
+
+    async toggleSubtask(taskId, subtaskId, isDone) {
+        try {
+            await API.put(`/tasks/${taskId}/subtasks/${subtaskId}`, { is_done: isDone });
+            this.showDetail(taskId);
+            this.loadTasks(this.pagination.page);
+        } catch (e) { Toast.error('Lỗi khi cập nhật nhiệm vụ con'); }
+    },
+
+    async deleteSubtask(taskId, subtaskId) {
+        if (!confirm('Xóa nhiệm vụ con này?')) return;
+        try {
+            await API.delete(`/tasks/${taskId}/subtasks/${subtaskId}`);
+            Toast.success('Đã xóa nhiệm vụ con');
+            this.showDetail(taskId);
+            this.loadTasks(this.pagination.page);
+        } catch (e) { Toast.error('Lỗi khi xóa nhiệm vụ con'); }
+    },
+
+    /* ================================================================
+       COMMENT HANDLERS
+    ================================================================ */
+    renderCommentsTree(comments, currentUserId, role, taskId) {
+        if (!comments || comments.length === 0) return '<p class="text-center text-muted">Chưa có bình luận nào</p>';
+
+        // Structure map
+        const map = {};
+        const roots = [];
+
+        // Sort by time first
+        const sorted = [...comments].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+        sorted.forEach(c => {
+            c.children = [];
+            map[c.id] = c;
+            if (c.parent_id && map[c.parent_id]) {
+                map[c.parent_id].children.push(c);
+            } else {
+                roots.push(c);
+            }
+        });
+
+        // Inverse roots to show latest first
+        roots.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        const renderNode = (node, depth = 0) => {
+            const isMyComment = node.user_id === currentUserId;
+            const canDelete = isMyComment || role === 'admin';
+
+            return `
+                <div class="comment-node mb-3" style="margin-left: ${depth * 30}px; border-left: ${depth > 0 ? '2px solid var(--border-color)' : 'none'}; padding-left: ${depth > 0 ? '15px' : '0'};">
+                    <div class="d-flex gap-3">
+                        <div class="sidebar-user-avatar" style="width:32px; height:32px; font-size:0.7rem; flex-shrink:0;">${getInitials(node.user_name)}</div>
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="fw-bold small">${node.user_name}</span>
+                                <span class="text-muted" style="font-size:0.65rem;">${timeAgo(node.created_at)}</span>
+                            </div>
+                            <div class="text-secondary" style="font-size:0.85rem; line-height:1.5;">${node.content}</div>
+                            <div class="mt-1 d-flex gap-3" style="font-size:0.7rem;">
+                                <a href="javascript:void(0)" class="text-primary text-decoration-none fw-bold" onclick="Tasks.prepareReply(${node.id}, '${node.user_name}')">Trả lời</a>
+                                ${canDelete ? `<a href="javascript:void(0)" class="text-danger text-decoration-none" onclick="Tasks.deleteComment(${taskId}, ${node.id})">Xóa</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="replies-container">
+                        ${node.children.map(child => renderNode(child, depth + 1)).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        return roots.map(root => renderNode(root)).join('');
+    },
+
+    prepareReply(parentId, userName) {
+        document.getElementById('comment-parent-id').value = parentId;
+        document.getElementById('reply-to-user').innerText = userName;
+        document.getElementById('reply-to-alert').classList.remove('d-none');
+        document.getElementById('comment-content').focus();
+    },
+
+    cancelReply() {
+        document.getElementById('comment-parent-id').value = '';
+        document.getElementById('reply-to-alert').classList.add('d-none');
+    },
+
+    async addComment(taskId) {
+        const contentEl = document.getElementById('comment-content');
+        const parentId = document.getElementById('comment-parent-id').value;
+        const content = contentEl.value.trim();
+        if (!content) return;
+        try {
+            await API.post(`/tasks/${taskId}/comments`, {
+                content,
+                parent_id: parentId || null
+            });
+            contentEl.value = '';
+            this.cancelReply();
+            this.showDetail(taskId, true);
+        } catch (e) { Toast.error('Lỗi khi gửi bình luận'); }
+    },
+
+    async deleteComment(taskId, commentId) {
+        if (!confirm('Bạn chắc chắn muốn xóa thảo luận này?')) return;
+        try {
+            await API.delete(`/tasks/${taskId}/comments/${commentId}`);
+            Toast.success('Đã xóa thảo luận');
+            this.showDetail(taskId, true);
+        } catch (e) { Toast.error(e.message || 'Lỗi khi xóa thảo luận'); }
+    },
+
+    /* ================================================================
+       ATTACHMENT HANDLERS
+    ================================================================ */
+    async uploadAttachment(taskId) {
+        const fileInput = document.getElementById('attachment-file');
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            await API.upload(`/tasks/${taskId}/attachments`, formData);
+            Toast.success('Tải lên thành công');
+            this.showDetail(taskId);
+        } catch (e) { Toast.error(e.message || 'Lỗi khi tải lên tệp'); }
+    },
+
+    async deleteAttachment(taskId, attachmentId) {
+        if (!confirm('Xóa tệp đính kèm này?')) return;
+        try {
+            await API.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
+            this.showDetail(taskId);
+        } catch (e) { Toast.error('Lỗi khi xóa tệp'); }
+    },
+
+    getFileIcon(type) {
+        if (!type) return 'far fa-file';
+        if (type.includes('image')) return 'far fa-file-image';
+        if (type.includes('pdf')) return 'far fa-file-pdf';
+        if (type.includes('word')) return 'far fa-file-word';
+        if (type.includes('excel') || type.includes('spreadsheet')) return 'far fa-file-excel';
+        if (type.includes('presentation')) return 'far fa-file-powerpoint';
+        return 'far fa-file-alt';
+    },
+
+    /* ================================================================
+       HISTORY LAZY LOADING & PAGINATION
+    ================================================================ */
+    async loadHistory(page = 1) {
+        if (this._historyLoading) return;
+        this._historyLoading = true;
+
+        const spinner = document.getElementById('history-loading-spinner');
+        const container = document.getElementById('history-items-container');
+        const loadMoreBtn = document.getElementById('history-load-more');
+
+        if (spinner) spinner.style.display = 'flex';
+        if (page === 1 && container) container.innerHTML = '';
+
+        try {
+            const res = await API.get(`/tasks/${this._historyTaskId}/history?page=${page}&per_page=${this._historyPerPage}`);
+            if (res) {
+                const newItems = res.history || [];
+                if (page === 1) {
+                    this._historyItems = newItems;
+                } else {
+                    this._historyItems = [...this._historyItems, ...newItems];
+                }
+                this._historyPage = page;
+                this._historyTotal = res.total || 0;
+                this._historyPages = res.pages || 0;
+                this._historyHasNext = res.has_next || false;
+
+                // Render items
+                if (page === 1) {
+                    this._renderHistoryItems(newItems, false);
+                } else {
+                    this._renderHistoryItems(newItems, true);
+                }
+
+                // Show/hide load more button
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = this._historyHasNext ? 'block' : 'none';
+                }
+
+                // Render pagination info
+                this._renderHistoryPagination();
+            }
+        } catch (e) {
+            console.error('History load failed', e);
+            if (container && page === 1) {
+                container.innerHTML = '<p class="history-empty">Không thể tải lịch sử</p>';
+            }
+        } finally {
+            this._historyLoading = false;
+            if (spinner) spinner.style.display = 'none';
+        }
+    },
+
+    async loadMoreHistory() {
+        if (this._historyHasNext) {
+            await this.loadHistory(this._historyPage + 1);
+        }
+    },
+
+    goToHistoryPage(page) {
+        if (page < 1 || page > this._historyPages) return;
+        this._historyItems = [];
+        this.loadHistory(page);
+    },
+
+    _renderHistoryItems(items, append = false) {
+        const container = document.getElementById('history-items-container');
+        if (!container) return;
+
+        if (!append) container.innerHTML = '';
+
+        if (this._historyItems.length === 0) {
+            container.innerHTML = '<p class="history-empty">Chưa có lịch sử thay đổi</p>';
+            return;
+        }
+
+        items.forEach((h, i) => {
+            const div = document.createElement('div');
+            div.className = 'history-item card-fade-in';
+            div.style.animationDelay = `${i * 40}ms`;
+            div.innerHTML = `
+                <div class="d-flex justify-content-between hi-header">
+                    <strong class="hi-user">${h.user_name}</strong>
+                    <span class="hi-time">${formatDateTime(h.created_at)}</span>
+                </div>
+                <div class="mt-1">
+                    <span class="hi-badge">${Tasks.getActionLabel(h.action)}</span>
+                </div>
+                <div class="mt-1 hi-details">${h.details || ''}</div>
+            `;
+            container.appendChild(div);
+        });
+    },
+
+    _renderHistoryPagination() {
+        const bar = document.getElementById('history-pagination-bar');
+        if (!bar) return;
+
+        if (this._historyTotal === 0) {
+            bar.style.display = 'none';
+            return;
+        }
+        bar.style.display = 'flex';
+
+        const { _historyPage: page, _historyPages: pages, _historyTotal: total } = this;
+        const shown = this._historyItems.length;
+
+        let html = `
+            <div class="text-muted" style="font-size:0.8rem;">
+                ${shown} / ${total} mục
+            </div>
+            <nav><ul class="pagination pagination-sm mb-0" style="font-size:0.75rem;">`;
+
+        html += `<li class="page-item ${page === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault(); Tasks.goToHistoryPage(${page - 1})">
+                <i class="fas fa-chevron-left"></i>
+            </a></li>`;
+
+        let startP = Math.max(1, page - 2);
+        let endP = Math.min(pages, startP + 4);
+        if (endP - startP < 4) startP = Math.max(1, endP - 4);
+
+        for (let i = startP; i <= endP; i++) {
+            html += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" onclick="event.preventDefault(); Tasks.goToHistoryPage(${i})">${i}</a></li>`;
+        }
+
+        html += `<li class="page-item ${page === pages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="event.preventDefault(); Tasks.goToHistoryPage(${page + 1})">
+                <i class="fas fa-chevron-right"></i>
+            </a></li></ul></nav>`;
+
+        bar.innerHTML = html;
     },
 
     getActionLabel(action) {
@@ -836,22 +1403,27 @@ const Tasks = {
     },
 
     toggleAllAssignees() {
-        const checkboxes = document.querySelectorAll('#assignee-checkboxes .assignee-item input[type="checkbox"]');
-        const visible = Array.from(checkboxes).filter(cb => cb.offsetParent !== null);
-        const allChecked = visible.every(cb => cb.checked);
-        visible.forEach(cb => { cb.checked = !allChecked; this.syncAssigneeRow(cb); });
+        const checkboxes = document.querySelectorAll('#assignee-checkboxes input[type="checkbox"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+            const item = cb.closest('.assignee-item');
+            if (item) item.classList.toggle('selected', cb.checked);
+        });
     },
 
     renderAssigneeRow(s, assignedIds = []) {
         const isChecked = assignedIds.includes(s.id);
         return `
             <div class="assignee-item ${isChecked ? 'selected' : ''}" onclick="Tasks.toggleAssigneeRow(this, event)">
-                <input class="form-check-input" type="checkbox" value="${s.id}" id="stu-${s.id}"
-                       ${isChecked ? 'checked' : ''}
-                       onclick="event.stopPropagation(); Tasks.syncAssigneeRow(this)">
-                <label class="form-check-label" for="stu-${s.id}" style="font-size:0.85rem;color:var(--text-secondary);cursor:pointer;">
-                    ${s.full_name} (${s.department || 'Giảng viên'})
-                </label>
+                <div class="d-flex align-items-center gap-2">
+                    <input class="form-check-input" type="checkbox" value="${s.id}" id="stu-${s.id}"
+                           ${isChecked ? 'checked' : ''}
+                           onclick="event.stopPropagation(); Tasks.syncAssigneeRow(this)">
+                    <label class="form-check-label mb-0" for="stu-${s.id}" style="font-size:0.85rem;color:var(--text-secondary);cursor:pointer;flex:1;">
+                        ${s.full_name} <span class="text-muted small">(${s.department || 'Giảng viên'})</span>
+                    </label>
+                </div>
             </div>
         `;
     },
@@ -863,6 +1435,9 @@ const Tasks = {
 
     toggleAssigneeRow(row, event) {
         const checkbox = row.querySelector('input[type="checkbox"]');
-        if (checkbox) { checkbox.checked = !checkbox.checked; this.syncAssigneeRow(checkbox); }
+        if (checkbox) {
+            checkbox.checked = !checkbox.checked;
+            this.syncAssigneeRow(checkbox);
+        }
     }
 };
