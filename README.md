@@ -181,3 +181,16 @@ Nếu bạn muốn, tôi có thể:
 - Commit file `README.md` vào git cho bạn.
 - Thêm hướng dẫn cài đặt nhanh cho Windows/PowerShell.
 - Sinh Postman collection mẫu cho các endpoint chính.
+- ---
+title: TaskManager
+emoji: ⚡
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+license: openrail
+short_description: Task ManageAr
+---
+
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+
