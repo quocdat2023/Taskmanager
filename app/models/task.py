@@ -8,7 +8,7 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done, approved
+    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done
     priority = db.Column(db.String(20), nullable=False, default='medium')  # low, medium, high, urgent
     due_date = db.Column(db.DateTime, nullable=True)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -69,7 +69,7 @@ class TaskAssignment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done, approved
+    status = db.Column(db.String(20), nullable=False, default='todo')  # todo, in_progress, done
     note = db.Column(db.Text, nullable=True)
     submitted_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -80,6 +80,9 @@ class TaskAssignment(db.Model):
             'task_id': self.task_id,
             'user_id': self.user_id,
             'user_name': self.assignee.full_name if self.assignee else None,
+            'email': self.assignee.email if self.assignee else None,
+            'department': self.assignee.department if self.assignee else None,
+            'role': self.assignee.role if self.assignee else None,
             'status': self.status,
             'note': self.note,
             'submitted_at': self.submitted_at.isoformat() if self.submitted_at else None,
@@ -123,6 +126,9 @@ class TaskComment(db.Model):
             'task_id': self.task_id,
             'user_id': self.user_id,
             'user_name': self.author.full_name if self.author else 'Unknown',
+            'email': self.author.email if self.author else None,
+            'department': self.author.department if self.author else None,
+            'role': self.author.role if self.author else None,
             'content': self.content,
             'parent_id': self.parent_id,
             'created_at': self.created_at.isoformat() + 'Z'

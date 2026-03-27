@@ -86,10 +86,16 @@ const Tasks = {
                 this.loadTasks(this.pagination.page);
 
                 // 2. If the updated task is currently open in detail modal, refresh the modal content
-                if (this.activeTaskId === task_id) {
-                    console.log(`Realtime update for active task ${task_id}: ${action}`);
+                if (this.activeTaskId && Number(this.activeTaskId) === Number(task_id)) {
+                    console.log(`[Realtime Detail] Refreshing modal for task ${task_id}`);
                     this.showDetail(task_id, true); // true = refresh mode
                 }
+            });
+
+            // Listen for global task list changes (Kanban board sync across all users)
+            window.addEventListener('task-list-realtime-update', (e) => {
+                console.log('Kanban sync: task_list_updated received', e.detail);
+                this.loadTasks(this.pagination.page);
             });
 
             this.notificationListenerAdded = true;
@@ -326,9 +332,9 @@ const Tasks = {
             ? `<span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px;">+${task.assignees.length - 4}</span>`
             : '';
 
-        const isAdminOrTeacher = sessionStorage.getItem('role') === 'admin' || sessionStorage.getItem('role') === 'teacher';
-        const actionBtns = isAdminOrTeacher ? `
-            <button onclick="event.stopPropagation(); Tasks.showEditModal(${task.id})" title="Chỉnh sửa">
+        const isAdmin = sessionStorage.getItem('role') === 'admin';
+        const actionBtns = isAdmin ? `
+            <button  class="danger" onclick="event.stopPropagation(); Tasks.showEditModal(${task.id})" title="Chỉnh sửa">
                 <i class="fas fa-edit"></i>
             </button>
             <button class="danger" onclick="event.stopPropagation(); Tasks.deleteTask(${task.id})" title="Xóa">
@@ -365,7 +371,8 @@ const Tasks = {
 
             ${progressBar}
 
-            <div class="kanban-card-meta">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+
                 ${dueBadge}
                 ${task.estimated_time ? `<span class="meta-item"><i class="far fa-clock"></i> Dự kiến: ${task.estimated_time}</span>` : ''}
                 ${task.course_name ? `<span class="meta-item"><i class="fas fa-book"></i> ${task.course_name}</span>` : ''}
@@ -481,8 +488,8 @@ const Tasks = {
                 <td>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-glass" style="padding:6px 10px;font-size:0.75rem;" onclick="Tasks.showDetail(${task.id})"><i class="fas fa-eye"></i></button>
-                        ${(sessionStorage.getItem('role') === 'admin' || sessionStorage.getItem('role') === 'teacher') ? `
-                            <button class="btn-glass" style="padding:6px 10px;font-size:0.75rem;" onclick="Tasks.showEditModal(${task.id})"><i class="fas fa-edit"></i></button>
+                        ${sessionStorage.getItem('role') === 'admin' ? `
+                            <button class="btn-glass" style="padding:6px 10px;font-size:0.75rem;" onclick="Tasks.showEditModal(${task.id})"><i class="fas fa-edit">d</i></button>
                             <button class="btn-danger" style="padding:6px 10px;font-size:0.75rem;" onclick="Tasks.deleteTask(${task.id})"><i class="fas fa-trash"></i></button>
                         ` : ''}
                     </div>
@@ -572,7 +579,7 @@ const Tasks = {
        KANBAN BOARD
     ================================================================ */
     renderKanban() {
-        const statuses = ['todo', 'in_progress', 'done', 'approved'];
+        const statuses = ['todo', 'in_progress', 'done'];
         const role = sessionStorage.getItem('role');
         const currentUserId = parseInt(sessionStorage.getItem('user_id'));
 
@@ -582,8 +589,7 @@ const Tasks = {
             if (!body) return;
 
             const filteredTasks = this.tasks.filter(t => {
-                const myAssignment = t.assignees?.find(a => a.user_id === currentUserId);
-                const effectiveStatus = myAssignment ? myAssignment.status : t.status;
+                const effectiveStatus = t.status;
                 return effectiveStatus === status;
             });
             if (countEl) countEl.textContent = filteredTasks.length;
@@ -600,16 +606,17 @@ const Tasks = {
                 const priorityClass = `p-${task.priority}`;
                 const progress = task.progress || 0;
 
-                let approveActions = '';
-                // Only show approve/reject for cards in 'done' column AND IF user is admin/teacher
-                if (status === 'done' && (role === 'admin' || role === 'teacher')) {
-                    approveActions = `
-                        <div class="approve-actions" onclick="event.stopPropagation()">
-                            <button class="btn-approve" onclick="Tasks.updateStatus(${task.id}, 'approved')">
-                                <i class="fas fa-check"></i> Duyệt
+                let actionBtns = '';
+
+                // Only admin can edit/delete directly from board
+                if (role === 'admin') {
+                    actionBtns = `
+                        <div class="task-card-actions" onclick="event.stopPropagation()" style="position:absolute; bottom:15px; right:12px; display:flex; gap:6px; opacity:1; display: none">
+                            <button class="danger" onclick="Tasks.showEditModal(${task.id})" title="Chỉnh sửa">
+                                <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn-reject" onclick="Tasks.updateStatus(${task.id}, 'in_progress')">
-                                <i class="fas fa-undo"></i> Từ chối
+                            <button class="danger" onclick="Tasks.deleteTask(${task.id})" title="Xóa">
+                                <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     `;
@@ -620,8 +627,10 @@ const Tasks = {
                      ondragstart="Tasks.onDragStart(event, ${task.id})"
                      onclick="Tasks.showDetail(${task.id})">
                     
+                    ${actionBtns}
+
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">${task.course_code || 'TASK'}</span>
+                        <span style="font-size:0.7rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">${task.course_name || 'TASK'}</span>
                         ${task.due_date ? `<span style="font-size:0.7rem;color:var(--text-muted); white-space:nowrap;"><i class="far fa-clock"></i> ${formatDate(task.due_date)}</span>` : ''}
                     </div>
 
@@ -642,13 +651,41 @@ const Tasks = {
                             ${(task.assignees || []).slice(0, 3).map(a => `<span class="kanban-card-assignee" title="${a.user_name}">${getInitials(a.user_name)}</span>`).join('')}
                             ${(task.assignees || []).length > 3 ? `<span style="font-size:0.65rem; color:var(--text-muted); margin-left:4px;">+${task.assignees.length - 3}</span>` : ''}
                         </div>
-                        <div style="display:flex; gap:6px;">
-                            ${(task.attachments || []).length > 0 ? `<i class="fas fa-paperclip" style="font-size:0.75rem; opacity:0.5;"></i>` : ''}
-                            ${(task.comments || []).length > 0 ? `<i class="far fa-comment" style="font-size:0.75rem; opacity:0.5;"></i>` : ''}
+                       <div style="display: flex; align-items: center; gap: 12px;">
+    
+    <!-- Các icon thông tin -->
+    <div style="display: flex; align-items: center; gap: 6px;">
+        ${(task.attachments || []).length > 0 ? `<i class="fas fa-paperclip" style="border: none !important; background-color: #ffecec !important; color: #ed2a26 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0 !important;"
+                onmouseover="this.style.setProperty('background-color', '#ed2a26', 'important'); this.style.setProperty('color', '#FFFFFF', 'important');" 
+                onmouseout="this.style.setProperty('background-color', '#ffecec', 'important'); this.style.setProperty('color', '#ed2a26', 'important');" title="Có file đính kèm"></i>` : ''}
+        ${(task.comments || []).length > 0 ? `<a title="Có bình luận" onclick="Tasks.showDetail(${task.id})" style="border: none !important; background-color: #ffecec !important; color: #ed2a26 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0 !important;"
+                onmouseover="this.style.setProperty('background-color', '#ed2a26', 'important'); this.style.setProperty('color', '#FFFFFF', 'important');" 
+                onmouseout="this.style.setProperty('background-color', '#ffecec', 'important'); this.style.setProperty('color', '#ed2a26', 'important');" ><i class="far fa-comment"></i></a>` : ''}
+    </div>
+    
+    <!-- Các nút hành động -->
+    <div style="display: flex; align-items: center; gap: 6px;">
+        
+        <!-- Nút Sửa -->
+        <button onclick="Tasks.showEditModal(${task.id})" title="Chỉnh sửa" 
+               style="border: none !important; background-color: #ffecec !important; color: #ed2a26 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0 !important;"
+                onmouseover="this.style.setProperty('background-color', '#ed2a26', 'important'); this.style.setProperty('color', '#FFFFFF', 'important');" 
+                onmouseout="this.style.setProperty('background-color', '#ffecec', 'important'); this.style.setProperty('color', '#ed2a26', 'important');">
+            <i class="fas fa-edit" style="font-size: 0.75rem; color: inherit !important;"></i>
+        </button>
+
+        <!-- Nút Xóa -->
+        <button onclick="Tasks.deleteTask(${task.id})" title="Xóa" 
+                style="border: none !important; background-color: #ffecec !important; color: #ed2a26 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0 !important;"
+                onmouseover="this.style.setProperty('background-color', '#ed2a26', 'important'); this.style.setProperty('color', '#FFFFFF', 'important');" 
+                onmouseout="this.style.setProperty('background-color', '#ffecec', 'important'); this.style.setProperty('color', '#ed2a26', 'important');">
+            <i class="fas fa-trash" style="font-size: 0.75rem; color: inherit !important;"></i>
+        </button>
+
+    </div>
+</div>
                         </div>
                     </div>
-
-                    ${approveActions}
                 </div>
             `}).join('');
         });
@@ -660,6 +697,9 @@ const Tasks = {
     onDragStart(event, taskId) {
         event.dataTransfer.setData('text/plain', taskId);
         event.target.style.opacity = '0.5';
+        event.target.addEventListener('dragend', () => {
+            event.target.style.opacity = '1';
+        }, { once: true });
     },
 
     initDragDrop() {
@@ -877,83 +917,130 @@ const Tasks = {
             </ul>
             <div class="tab-content">
                 <!-- INFO TAB -->
-                <div class="tab-pane fade ${_isTab('#detail-info') ? 'show active' : ''}" id="detail-info">
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h4 class="fw-bold mb-0">${updatedTask.title}</h4>
-                            ${getPriorityBadge(updatedTask.priority)}
-                        </div>
-                        <p class="text-secondary" style="white-space: pre-wrap; font-size:0.95rem;">${updatedTask.description || 'Không có mô tả'}</p>
+                <!-- INFO TAB -->
+<div class="tab-pane fade ${_isTab('#detail-info') ? 'show active' : ''}" id="detail-info" 
+     style="--primary: #ed2a26; --primary-light: #ffecec; --text-primary: #0F172A; --text-secondary: #334155; --text-muted: #64748B; --bg-card: #FFFFFF; --bg-hover: #F8FAFC; --bg-tertiary: #F1F5F9; --border-color: #E2E8F0; color: var(--text-primary);">
+    
+    <!-- Header: Title & Description -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+            <h4 class="fw-bold mb-0" style="color: var(--text-primary); line-height: 1.4;">${updatedTask.title}</h4>
+            <div style="transform: scale(0.9); transform-origin: right center;">
+                ${getPriorityBadge(updatedTask.priority)}
+            </div>
+        </div>
+        <div style="background-color: var(--bg-hover); border-left: 4px solid var(--primary); padding: 16px; border-radius: 0 8px 8px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
+            <p style="white-space: pre-wrap; font-size: 0.95rem; color: var(--text-secondary); margin: 0; line-height: 1.6;">${updatedTask.description || '<span style="color: var(--text-muted); font-style: italic;">Không có mô tả</span>'}</p>
+        </div>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="mb-4" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold" style="font-size: 0.75rem; color: var(--text-muted); letter-spacing: 0.5px;"><i class="fas fa-chart-line me-2"></i>TIẾN ĐỘ TỔNG THỂ</span>
+            <span class="fw-bold" style="color: var(--primary); font-size: 1.1rem;">${updatedTask.progress}%</span>
+        </div>
+        <div class="progress-container" style="height: 8px; background-color: var(--bg-tertiary); border-radius: 10px; overflow: hidden;">
+            <div class="progress-bar-fill" style="width: ${updatedTask.progress}%; background: linear-gradient(90deg, #b71e1c, var(--primary)); border-radius: 10px; box-shadow: 0 0 8px rgba(237, 42, 38, 0.4); transition: width 0.5s ease; height: 100%;"></div>
+        </div>
+    </div>
+
+    <!-- 4-Grid Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-6">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px;">Trạng thái</div>
+                <div>${getStatusBadge(updatedTask.status)}</div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px;">Hạn chót</div>
+                <div class="fw-bold ${new Date(updatedTask.due_date) < new Date() ? 'text-danger' : ''}" style="color: var(--text-primary); font-size: 0.95rem;">
+                    <i class="far fa-calendar-alt me-2" style="color: #E17055;"></i>${updatedTask.due_date ? formatDate(updatedTask.due_date) : '—'}
+                </div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px;">Thời gian dự kiến</div>
+                <div class="fw-bold" style="color: var(--text-primary); font-size: 0.95rem;">
+                    <i class="far fa-clock me-2" style="color: #6C5CE7;"></i>${updatedTask.estimated_time || '—'}
+                </div>
+            </div>
+        </div>
+        <div class="col-6">
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; height: 100%; box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 8px;">Thời gian thực tế</div>
+                <div class="fw-bold" style="color: var(--text-primary); font-size: 0.95rem;">
+                    <i class="fas fa-stopwatch me-2" style="color: #00B894;"></i>${updatedTask.actual_time || '—'}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Info Section -->
+    <div class="mb-4" style="background: var(--bg-hover); border: 1px dashed var(--border-color); border-radius: 12px; padding: 16px;">
+        <h6 class="fw-bold mb-3" style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-book me-2"></i>Phân công & Môn học</h6>
+        <div class="row g-3" style="color: var(--text-secondary); font-size: 0.9rem;">
+            <div class="col-6">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Môn học</span>
+                    <strong style="color: var(--text-primary);">${updatedTask.course_name || '—'} <span style="font-weight: normal; color: var(--text-muted);">(${updatedTask.course_code || '—'})</span></strong>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Nhóm</span>
+                    <strong style="color: var(--text-primary);">${updatedTask.class_group || '—'}</strong>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Học kỳ</span>
+                    <strong style="color: var(--text-primary);">${updatedTask.semester || '—'}</strong>
+                </div>
+            </div>
+            <div class="col-6">
+                <div style="display: flex; flex-direction: column;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Năm học</span>
+                    <strong style="color: var(--text-primary);">${updatedTask.academic_year || '—'}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignees Section -->
+    <div class="pt-2">
+        <h6 class="fw-bold mb-3" style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-users me-2"></i>Thành viên tham gia</h6>
+        <div class="d-flex flex-wrap gap-2">
+            ${(updatedTask.assignees || []).map(a => `
+                <div class="d-flex align-items-center gap-2" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 50px; padding: 6px 16px 6px 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.03); transition: transform 0.2s;">
+                    <div class="kanban-card-assignee" style="width: 32px; height: 32px; background-color: var(--primary-light); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold;">
+                        ${getInitials(a.user_name)}
                     </div>
-
-                    <!-- Progress Section -->
-                    <div class="mb-4">
-                        <div class="d-flex justify-content-between mb-2">
-                             <span class="fw-bold" style="font-size:0.85rem;">TIẾN ĐỘ TỔNG THỂ</span>
-                             <span class="fw-bold text-primary">${updatedTask.progress}%</span>
-                        </div>
-                        <div class="progress-container" style="height:10px;">
-                            <div class="progress-bar-fill" style="width: ${updatedTask.progress}%"></div>
-                        </div>
-                    </div>
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-6">
-                            <div class="p-3 rounded border bg-light">
-                                <div class="text-muted small mb-1 uppercase fw-bold">Trạng thái</div>
-                                <div>${getStatusBadge(updatedTask.status)}</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 rounded border bg-light">
-                                <div class="text-muted small mb-1 uppercase fw-bold">Hạn chót</div>
-                                <div class="fw-bold ${new Date(updatedTask.due_date) < new Date() ? 'text-danger' : ''}">
-                                    <i class="far fa-calendar-alt me-1"></i> ${updatedTask.due_date ? formatDate(updatedTask.due_date) : '—'}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 rounded border bg-light">
-                                <div class="text-muted small mb-1 uppercase fw-bold">Thời gian dự kiến</div>
-                                <div class="fw-bold"><i class="far fa-clock me-1"></i> ${updatedTask.estimated_time || '—'}</div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 rounded border bg-light">
-                                <div class="text-muted small mb-1 uppercase fw-bold">Thời gian thực tế</div>
-                                <div class="fw-bold"><i class="fas fa-stopwatch me-1"></i> ${updatedTask.actual_time || '—'}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="border-top pt-3">
-                        <h6 class="fw-bold mb-3 uppercase small text-muted">Phân công & Môn học</h6>
-                        <div class="row g-2 text-secondary small">
-                             <div class="col-6">Môn: <strong>${updatedTask.course_name || '—'}</strong> (${updatedTask.course_code || '—'})</div>
-                             <div class="col-6">Nhóm: <strong>${updatedTask.class_group || '—'}</strong></div>
-                             <div class="col-6">Học kỳ: <strong>${updatedTask.semester || '—'}</strong></div>
-                             <div class="col-6">Năm học: <strong>${updatedTask.academic_year || '—'}</strong></div>
-                        </div>
-
-                        <div class="mt-3 d-flex flex-wrap gap-2">
-                            ${(updatedTask.assignees || []).map(a => `
-                                <div class="d-flex align-items-center gap-2 bg-white border rounded px-2 py-1 shadow-sm">
-                                    <span class="kanban-card-assignee" style="width:24px;height:24px;font-size:0.6rem;margin:0;">${getInitials(a.user_name)}</span>
-                                    <span style="font-size:0.8rem; font-weight:600;">${a.user_name}</span>
-                                    <span class="badge ${a.status === 'done' ? 'bg-success' : 'bg-secondary'}" style="font-size:0.6rem;">${getStatusLabel(a.status)}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-
-                        ${(updatedTask.assignees || []).some(a => a.user_id === currentUserId) && role !== 'admin' ? `
-                            <div class="mt-4 text-center">
-                                <button class="btn btn-outline-danger btn-sm" onclick="Tasks.withdrawTask(${updatedTask.id})">
-                                    <i class="fas fa-sign-out-alt me-2"></i> Rút khỏi task
-                                </button>
-                            </div>
-                        ` : ''}
+                    <div class="d-flex flex-column justify-content-center">
+                        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); line-height: 1.2;">${a.user_name}</span>
+                        <span style="font-size: 0.7rem; color: var(--text-muted);">${a.department || 'Thành viên'}</span>
                     </div>
                 </div>
+            `).join('')}
+        </div>
+    </div>
+
+    <!-- Withdraw Button -->
+    ${(updatedTask.assignees || []).some(a => a.user_id === currentUserId) && role !== 'admin' ? `
+        <div class="mt-4 pt-3 text-center" style="border-top: 1px solid var(--border-color);">
+            <button class="btn btn-sm" onclick="Tasks.withdrawTask(${updatedTask.id})" 
+                    style="color: var(--primary); background-color: var(--primary-light); border: 1px solid rgba(237, 42, 38, 0.2); border-radius: 8px; padding: 8px 20px; font-weight: 600; transition: all 0.3s;"
+                    onmouseover="this.style.backgroundColor='var(--primary)'; this.style.color='#fff';" 
+                    onmouseout="this.style.backgroundColor='var(--primary-light)'; this.style.color='var(--primary)';">
+                <i class="fas fa-sign-out-alt me-2"></i> Rút khỏi task
+            </button>
+        </div>
+    ` : ''}
+
+</div>
 
                 <!-- SUBTASKS TAB -->
                 <div class="tab-pane fade ${_isTab('#detail-subtasks') ? 'show active' : ''}" id="detail-subtasks">
@@ -978,12 +1065,15 @@ const Tasks = {
 
                 <!-- COMMENTS TAB -->
                 <div class="tab-pane fade ${_isTab('#detail-comments') ? 'show active' : ''}" id="detail-comments">
+                    <div id="comments-list" class="mt-4" style="max-height:450px; overflow-y:auto; padding-right:5px;">
+                        ${this.renderCommentsTree(updatedTask.comments || [], currentUserId, role, updatedTask.id)}
+                    </div>
                     <div class="mb-3">
                          <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="small fw-bold text-muted uppercase">Thảo luận & Phản hồi</span>
                          </div>
-                         <div id="reply-to-alert" class="alert alert-info py-2 px-3 mb-2 d-none d-flex justify-content-between align-items-center">
-                            <span class="small">Đang trả lời: <strong id="reply-to-user"></strong></span>
+                         <div id="reply-to-alert" class="alert py-2 px-3 mb-2 d-none d-flex justify-content-between align-items-center">
+                            <span class="small text-danger">Đang trả lời: <strong id="reply-to-user"></strong></span>
                             <button type="button" class="btn-close" style="font-size:0.5rem;" onclick="Tasks.cancelReply()"></button>
                          </div>
                          <textarea id="comment-content" class="form-control-custom" rows="2" placeholder="Viết phản hồi hoặc ghi chú..."></textarea>
@@ -991,9 +1081,6 @@ const Tasks = {
                              <input type="hidden" id="comment-parent-id" value="">
                              <button class="btn-primary-custom" onclick="Tasks.addComment(${updatedTask.id})">Gửi bình luận</button>
                          </div>
-                    </div>
-                    <div id="comments-list" class="mt-4" style="max-height:450px; overflow-y:auto; padding-right:5px;">
-                        ${this.renderCommentsTree(updatedTask.comments || [], currentUserId, role, updatedTask.id)}
                     </div>
                 </div>
 
@@ -1033,7 +1120,7 @@ const Tasks = {
                     </div>
                     <div id="history-pagination-bar" class="d-flex justify-content-between align-items-center mt-2 px-1" style="display:none;"></div>
                     <div id="history-loading-spinner" class="text-center py-4" style="display:none;">
-                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
                         <span class="ms-2 text-muted small">Đang tải lịch sử...</span>
                     </div>
                 </div>
@@ -1146,14 +1233,17 @@ const Tasks = {
                 <div class="comment-node mb-3" style="margin-left: ${depth * 30}px; border-left: ${depth > 0 ? '2px solid var(--border-color)' : 'none'}; padding-left: ${depth > 0 ? '15px' : '0'};">
                     <div class="d-flex gap-3">
                         <div class="sidebar-user-avatar" style="width:32px; height:32px; font-size:0.7rem; flex-shrink:0;">${getInitials(node.user_name)}</div>
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="fw-bold small">${node.user_name}</span>
-                                <span class="text-muted" style="font-size:0.65rem;">${timeAgo(node.created_at)}</span>
-                            </div>
+                            <div class="flex-grow-1">
+                                <div class="sidebar-user-info">
+                                    <div class="sidebar-user-name" title="${node.user_name}">${node.user_name}
+                                    </div>
+                                    <div class="text-muted" style="font-size:0.75rem;">
+                                            ${node.email}
+                                    </div>
+                                </div>
                             <div class="text-secondary" style="font-size:0.85rem; line-height:1.5;">${node.content}</div>
                             <div class="mt-1 d-flex gap-3" style="font-size:0.7rem;">
-                                <a href="javascript:void(0)" class="text-primary text-decoration-none fw-bold" onclick="Tasks.prepareReply(${node.id}, '${node.user_name}')">Trả lời</a>
+                                <a href="javascript:void(0)" class="text-danger text-decoration-none fw-bold" onclick="Tasks.prepareReply(${node.id}, '${node.user_name}', '${node.email}')">Trả lời</a>
                                 ${canDelete ? `<a href="javascript:void(0)" class="text-danger text-decoration-none" onclick="Tasks.deleteComment(${taskId}, ${node.id})">Xóa</a>` : ''}
                             </div>
                         </div>
@@ -1168,9 +1258,9 @@ const Tasks = {
         return roots.map(root => renderNode(root)).join('');
     },
 
-    prepareReply(parentId, userName) {
+    prepareReply(parentId, userName, email) {
         document.getElementById('comment-parent-id').value = parentId;
-        document.getElementById('reply-to-user').innerText = userName;
+        document.getElementById('reply-to-user').innerText = userName + " - " + email;
         document.getElementById('reply-to-alert').classList.remove('d-none');
         document.getElementById('comment-content').focus();
     },
@@ -1318,17 +1408,38 @@ const Tasks = {
             return;
         }
 
+        // 1. Tạo hàm lấy màu CSS dựa trên action
+        const getBadgeStyle = (action) => {
+            const act = (action || '').toLowerCase();
+
+            // Bạn thay đổi các từ khóa ('create', 'update',...) cho khớp với dữ liệu thực tế lưu trong DB nhé
+            const colorMap = {
+                'create': '#00B894',   // Xanh lá (Tạo mới)
+                'update': '#FDCB6E',   // Vàng cam (Cập nhật)
+                'delete': '#E17055',   // Đỏ cam (Xóa)
+                'status': '#6C5CE7',   // Tím (Đổi trạng thái)
+                'assign': '#74B9FF',   // Xanh dương (Phân công)
+                'comment': '#00CEC9',  // Xanh Cyan (Bình luận)
+                'default': '#636E72'   // Xám (Mặc định nếu không khớp)
+            };
+
+            const color = colorMap[act] || colorMap['default'];
+
+            // Trả về chuỗi style inline (chữ có màu, nền nhạt 15%, bo góc)
+            return `color: ${color}; background-color: ${color}15; border: 1px solid ${color}40; padding: 2px 8px; border-radius: 4px; font-weight: 600;`;
+        };
+
         items.forEach((h, i) => {
             const div = document.createElement('div');
             div.className = 'history-item card-fade-in';
             div.style.animationDelay = `${i * 40}ms`;
             div.innerHTML = `
                 <div class="d-flex justify-content-between hi-header">
-                    <strong class="hi-user">${h.user_name}</strong>
+                    <strong class="hi-user text-danger">${h.user_name}</strong>
                     <span class="hi-time">${formatDateTime(h.created_at)}</span>
                 </div>
                 <div class="mt-1">
-                    <span class="hi-badge">${Tasks.getActionLabel(h.action)}</span>
+                    <span class="hi-badge" style="${getBadgeStyle(h.action)}">${Tasks.getActionLabel(h.action)}</span>
                 </div>
                 <div class="mt-1 hi-details">${h.details || ''}</div>
             `;
@@ -1421,7 +1532,7 @@ const Tasks = {
                            ${isChecked ? 'checked' : ''}
                            onclick="event.stopPropagation(); Tasks.syncAssigneeRow(this)">
                     <label class="form-check-label mb-0" for="stu-${s.id}" style="font-size:0.85rem;color:var(--text-secondary);cursor:pointer;flex:1;">
-                        ${s.full_name} <span class="text-muted small">(${s.department || 'Giảng viên'})</span>
+                        ${s.full_name} - ${s.email} - <span class="text-muted small">${s.department || 'Giảng viên'}</span>
                     </label>
                 </div>
             </div>

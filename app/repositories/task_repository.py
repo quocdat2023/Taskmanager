@@ -82,7 +82,7 @@ class TaskRepository(BaseRepository):
     def get_overdue_tasks(self):
         return Task.query.filter(
             Task.due_date < datetime.utcnow(),
-            Task.status.notin_(['done', 'approved'])
+            Task.status != 'done'
         ).all()
 
     def create_task(self, title, description, created_by, assignee_ids=None, **kwargs):
@@ -159,8 +159,7 @@ class TaskRepository(BaseRepository):
             'todo': base_query.filter(Task.status == 'todo').count(),
             'in_progress': base_query.filter(Task.status == 'in_progress').count(),
             'done': base_query.filter(Task.status == 'done').count(),
-            'approved': base_query.filter(Task.status == 'approved').count(),
-            'overdue': base_query.filter(Task.status.notin_(['done', 'approved']), Task.due_date < datetime.utcnow()).count(),
+            'overdue': base_query.filter(Task.status != 'done', Task.due_date < datetime.utcnow()).count(),
             'pending_requests': pending_requests
         }
 

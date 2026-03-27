@@ -41,6 +41,16 @@ def on_leave_task(data):
         leave_room(room)
         print(f"User left room: {room}")
 
+@socketio.on('join_kanban')
+def on_join_kanban():
+    join_room('kanban_board')
+    print("User joined kanban_board room")
+
+@socketio.on('leave_kanban')
+def on_leave_kanban():
+    leave_room('kanban_board')
+    print("User left kanban_board room")
+
 @socketio.on('send_message')
 def handle_send_message(data):
     # This event is triggered when a user sends a message via WebSocket

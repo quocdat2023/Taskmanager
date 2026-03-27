@@ -38,7 +38,8 @@
     <div class="col-md-2" style="width: 20%;">
         <div class="stat-card purple">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Tổng Người dùng</span>
+                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Tổng Người
+                    dùng</span>
                 <i class="fas fa-users" style="font-size:1.1rem; color:var(--primary);"></i>
             </div>
             <div class="stat-value" id="stats-users" style="font-size: 1.5rem;">0</div>
@@ -47,7 +48,8 @@
     <div class="col-md-2" style="width: 20%;">
         <div class="stat-card cyan">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Giảng viên</span>
+                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Tổng Giảng
+                    viên</span>
                 <i class="fas fa-chalkboard-teacher" style="font-size:1.1rem; color:var(--accent-cyan);"></i>
             </div>
             <div class="stat-value text-info" id="stats-teachers" style="font-size: 1.5rem;">0</div>
@@ -56,7 +58,8 @@
     <div class="col-md-2" style="width: 20%;">
         <div class="stat-card pink">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Sinh viên</span>
+                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Tổng Sinh
+                    viên</span>
                 <i class="fas fa-user-graduate" style="font-size:1.1rem; color:var(--accent-pink);"></i>
             </div>
             <div class="stat-value text-danger" id="stats-students" style="font-size: 1.5rem;">0</div>
@@ -65,7 +68,8 @@
     <div class="col-md-2" style="width: 20%;">
         <div class="stat-card orange">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Yêu cầu phê duyệt</span>
+                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Yêu cầu phê
+                    duyệt Task</span>
                 <i class="fas fa-check-double" style="font-size:1.1rem; color:var(--accent-orange);"></i>
             </div>
             <div class="stat-value text-warning" id="stats-requests" style="font-size: 1.5rem;">0</div>
@@ -74,10 +78,13 @@
     <div class="col-md-2" style="width: 20%;">
         <div class="stat-card green" style="background: rgba(46, 204, 113, 0.1);">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem; color: var(--accent-green);">TK chờ duyệt</span>
+                <span class="stat-label text-uppercase"
+                    style="letter-spacing:1px; font-size: 0.7rem; color: var(--accent-green);">Tàu khoản chờ
+                    duyệt</span>
                 <i class="fas fa-user-clock" style="font-size:1.1rem; color:var(--accent-green);"></i>
             </div>
-            <div class="stat-value" id="stats-pending-users" style="font-size: 1.5rem; color: var(--accent-green);">0</div>
+            <div class="stat-value" id="stats-pending-users" style="font-size: 1.5rem; color: var(--accent-green);">0
+            </div>
         </div>
     </div>
 </div>
@@ -137,11 +144,11 @@
                 <table class="table table-custom mb-0">
                     <thead>
                         <tr>
-                            <th>Người yêu cầu</th>
-                            <th>Loại yêu cầu</th>
+                            <th>Người gửi</th>
+                            <th>Phân loại</th>
                             <th>Công việc</th>
                             <th>Ngày gửi</th>
-                            <th></th>
+                            <th>Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="pending-requests-list">
@@ -230,7 +237,7 @@
             if (health) {
                 updateHealthBadge('health-db', health.database === 'online', 'Đang chạy', 'Đã ngắt');
                 updateHealthBadge('health-storage', health.storage === 'healthy', 'Bình thường', 'Lỗi phân quyền');
-                
+
                 let mailText = 'Chưa cấu hình';
                 let mailOk = false;
                 if (health.mail === 'online') {
@@ -274,7 +281,7 @@
                 <td><div class="text-truncate" style="max-width:150px; font-size:0.85rem;" title="${r.task_title}">${r.task_title}</div></td>
                 <td style="font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString('vi-VN')}</td>
                 <td class="text-end">
-                    <a href="/tasks/requests" class="btn-glass p-1 px-2" style="font-size:0.7rem;">Xử lý</a>
+                    <a href="/tasks/requests" class="btn-primary-custom" style="font-size:0.7rem;">Xử lý</a>
                 </td>
             </tr>
         `).join('');

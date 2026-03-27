@@ -157,23 +157,34 @@ def get_task_history(task_id):
 def update_task_status(task_id):
     data = request.get_json()
     status = data.get('status')
-    if status not in ('todo', 'in_progress', 'done', 'approved'):
+    if status not in ('todo', 'in_progress', 'done'):
         return jsonify({'error': 'Trạng thái không hợp lệ'}), 400
 
     user_id = get_jwt_identity()
     claims = get_jwt()
     role = claims.get('role', 'student')
 
+    # Admin can always update task status
     if role == 'admin':
         task = task_service.update_task_status(task_id, status, user_id)
         if not task:
             return jsonify({'error': 'Task không tồn tại'}), 404
-        return jsonify({'message': 'Trạng thái chính đã được cập nhật', 'task': task.to_dict()}), 200
+        return jsonify({'message': 'Trạng thái đã được cập nhật', 'task': task.to_dict()}), 200
+
+    # Non-admin: check if user is assigned to this task
+    task = task_service.get_task(task_id)
+    if not task:
+        return jsonify({'error': 'Task không tồn tại'}), 404
+
+    assigned_user_ids = [a.user_id for a in task.assignments]
+    if user_id in assigned_user_ids or task.created_by == user_id:
+        # Assigned user or task creator can update the global task status (drag-drop on Kanban)
+        updated_task = task_service.update_task_status(task_id, status, user_id)
+        if not updated_task:
+            return jsonify({'error': 'Không thể cập nhật trạng thái'}), 500
+        return jsonify({'message': 'Trạng thái đã được cập nhật', 'task': updated_task.to_dict()}), 200
     else:
-        assignment = task_service.update_assignment_status(task_id, user_id, status, data.get('note'))
-        if not assignment:
-            return jsonify({'error': 'Bạn không được giao task này để cập nhật.'}), 403
-        return jsonify({'message': 'Trạng thái cá nhân đã được cập nhật', 'assignment': assignment.to_dict()}), 200
+        return jsonify({'error': 'Bạn không được giao task này để cập nhật.'}), 403
 
 
 @task_bp.route('/tasks/<int:task_id>', methods=['DELETE'])

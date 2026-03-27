@@ -75,6 +75,8 @@ class TaskService:
                         reference_type='request'
                     )
 
+        # Broadcast to all Kanban board viewers
+        socketio.emit('task_list_updated', {'action': 'create', 'task_id': task.id})
         return task
 
     def get_task(self, task_id):
@@ -174,15 +176,42 @@ class TaskService:
                         reference_type='task',
                         reference_id=task.id
                     )
+            # Broadcast to all Kanban board viewers
+            socketio.emit('task_list_updated', {'action': 'update', 'task_id': task_id})
         return task
 
     def update_task_status(self, task_id, status, user_id):
         task = self.repo.update_task_status(task_id, status)
         if task:
-            self.repo.add_history(task_id, user_id, 'status_change', f'Cập nhật trạng thái công việc thành {status}')
-            # Realtime update for board/detail
-            socketio.emit('task_updated', {'task_id': task_id, 'action': 'status_change'}, room=f"task_{task_id}")
-            socketio.emit('task_list_updated', {'task_id': task_id}, room="broadcast_all") # If I want list refresh
+            if status == 'done':
+                status_add = 'Hoàn thành'
+            elif status == 'in_progress':
+                status_add = 'Đang làm'
+            elif status == 'todo':
+                status_add = 'Chưa bắt đầu'
+            self.repo.add_history(task_id, user_id, 'status_change', f'Cập nhật trạng thái công việc thành {status_add}')
+            # Look up the user who made the change
+            changer = self.user_repo.get_by_id(user_id)
+            changer_name = changer.full_name if changer else f'User {user_id}'
+            status_labels = {'todo': 'Chưa bắt đầu', 'in_progress': 'Đang làm', 'done': 'Hoàn thành'}
+            status_label = status_labels.get(status, status)
+
+            # Sync all participants' personal status with global task status
+            for assignment in task.assignments:
+                self.repo.update_assignment_status(assignment.id, status)
+
+            # Realtime update for board/detail - Broadcast to all for synchronization
+            socketio.emit('task_updated', {'task_id': task_id, 'action': 'status_change'})
+            socketio.emit('task_list_updated', {
+                'task_id': task_id,
+                'action': 'status_change',
+                'changer_name': changer_name,
+                'changer_id': user_id,
+                'task_title': task.title,
+                'new_status': status_label,
+                'assignee_ids': [a.user_id for a in task.assignments],
+                'creator_id': task.created_by
+            })
 
             # Notify assignees
             for assignment in task.assignments:
@@ -190,7 +219,7 @@ class TaskService:
                     self.notification_repo.create_notification(
                         user_id=assignment.user_id,
                         title='Trạng thái công việc thay đổi',
-                        message=f'Công việc "{task.title}" chuyển sang trạng thái: {status}',
+                        message=f'Công việc "{task.title}" chuyển sang trạng thái: {status_add}',
                         notification_type='task',
                         reference_type='task',
                         reference_id=task.id
@@ -215,7 +244,9 @@ class TaskService:
                         reference_id=task.id
                     )
                 # Realtime update
-                socketio.emit('task_updated', {'task_id': task_id, 'action': 'assignment_status'}, room=f"task_{task_id}")
+                # Notify everyone to facilitate realtime sync
+            socketio.emit('task_updated', {'task_id': task_id, 'action': 'assignment_change', 'user_id': user_id})
+            socketio.emit('task_list_updated', {'action': 'assignment_change', 'task_id': task_id})
             return updated
         return None
 
@@ -256,7 +287,10 @@ class TaskService:
     def delete_task(self, task_id, user_id=None):
         if user_id:
             self.repo.add_history(task_id, user_id, 'delete', 'Xóa công việc bởi admin.')
-        return self.repo.delete(task_id)
+        result = self.repo.delete(task_id)
+        # Broadcast to all Kanban board viewers
+        socketio.emit('task_list_updated', {'action': 'delete', 'task_id': task_id})
+        return result
 
     def get_task_history(self, task_id, page=1, per_page=10):
         paginated = self.repo.get_task_history(task_id, page=page, per_page=per_page)
@@ -308,6 +342,8 @@ class TaskService:
             message=f'Yêu cầu "{req.request_type}" của bạn cho task "{task.title}" đã được {status}.',
             notification_type='info'
         )
+        # Broadcast to all Kanban board viewers
+        socketio.emit('task_list_updated', {'action': 'request_processed', 'task_id': req.task_id})
         return req
 
     def get_task_stats(self, user_id=None):

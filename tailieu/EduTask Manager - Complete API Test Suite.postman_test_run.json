@@ -1,0 +1,1612 @@
+{
+	"id": "59ccca3e-926d-4b4d-bb25-3876fa63d8dd",
+	"name": "EduTask Manager - Complete API Test Suite",
+	"timestamp": "2026-03-27T11:06:00.662Z",
+	"collection_id": "38643760-81eb6bd4-e9ce-4a18-a041-65a2926bf24c",
+	"folder_id": 0,
+	"environment_id": "38643760-5dc82e45-06e6-495f-a92b-77a13b5c89e0",
+	"totalPass": 89,
+	"delay": "2000",
+	"persist": true,
+	"status": "error",
+	"startedAt": "2026-03-27T11:04:56.482Z",
+	"totalFail": 51,
+	"results": [
+		{
+			"id": "6cf0316e-886b-41bf-a180-daca3bfd5ec9",
+			"name": "Register New Student",
+			"url": "http://localhost:7860/api/register",
+			"time": 151,
+			"responseCode": {
+				"code": 201,
+				"name": "CREATED"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 201": true,
+				"Response is JSON": true,
+				"Has user": true,
+				"User created with student role": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 201": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has user": {
+					"pass": 1,
+					"fail": 0
+				},
+				"User created with student role": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				151
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 201": true,
+					"Response is JSON": true,
+					"Has user": true,
+					"User created with student role": true
+				}
+			]
+		},
+		{
+			"id": "60d2bdbb-fa0a-40ae-8a6a-68416cd3f256",
+			"name": "Login as Admin",
+			"url": "http://localhost:7860/api/login",
+			"time": 138,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": true,
+				"Response is JSON": true,
+				"Has token": true,
+				"Login returns user object": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has token": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Login returns user object": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				138
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": true,
+					"Response is JSON": true,
+					"Has token": true,
+					"Login returns user object": true
+				}
+			]
+		},
+		{
+			"id": "8ea77f25-5fd1-43e9-9d93-b4f12ff90b94",
+			"name": "Login as Teacher",
+			"url": "http://localhost:7860/api/login",
+			"time": 135,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": true,
+				"Response is JSON": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				135
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": true,
+					"Response is JSON": true
+				}
+			]
+		},
+		{
+			"id": "15cf31f4-ae68-43da-8c99-7dab0f5394d7",
+			"name": "Login as Student",
+			"url": "http://localhost:7860/api/login",
+			"time": 127,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": true,
+				"Response is JSON": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				127
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": true,
+					"Response is JSON": true
+				}
+			]
+		},
+		{
+			"id": "c78662f5-744e-4e0a-b465-297eb067508b",
+			"name": "Login - Invalid Credentials",
+			"url": "http://localhost:7860/api/login",
+			"time": 113,
+			"responseCode": {
+				"code": 401,
+				"name": "UNAUTHORIZED"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 401": true,
+				"Returns error": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 401": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Returns error": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				113
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 401": true,
+					"Returns error": true
+				}
+			]
+		},
+		{
+			"id": "e92a4166-4157-4e37-a3d1-33187091b158",
+			"name": "Get Current Profile (Me)",
+			"url": "http://localhost:7860/api/me",
+			"time": 7,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has user": false,
+				"Profile has required fields": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has user": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Profile has required fields": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				7
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has user": false,
+					"Profile has required fields": false
+				}
+			]
+		},
+		{
+			"id": "789c1eb1-ae1b-47e6-b979-cec879ee80ef",
+			"name": "Get Teachers List",
+			"url": "http://localhost:7860/api/teachers",
+			"time": 8,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has teachers": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has teachers": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				8
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has teachers": false
+				}
+			]
+		},
+		{
+			"id": "4274ebaf-fb32-42a0-a9b6-22b789d768d1",
+			"name": "Get Students/Assignable Users",
+			"url": "http://localhost:7860/api/students",
+			"time": 6,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has students": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has students": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				6
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has students": false
+				}
+			]
+		},
+		{
+			"id": "2af9f572-ef90-4f87-a58a-e1d5c3d99d2a",
+			"name": "Update User Settings",
+			"url": "http://localhost:7860/api/settings",
+			"time": 7,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Settings updated": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Settings updated": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				7
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Settings updated": false
+				}
+			]
+		},
+		{
+			"id": "29a2e902-68de-4e58-8227-5d28408dc462",
+			"name": "Logout",
+			"url": "http://localhost:7860/api/logout",
+			"time": 8,
+			"responseCode": {
+				"code": 200,
+				"name": "OK"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": true,
+				"Logout message": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Logout message": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				8
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": true,
+					"Logout message": true
+				}
+			]
+		},
+		{
+			"id": "576ae55f-1578-4f8a-8e18-8ddf63f3d93f",
+			"name": "System Health Check",
+			"url": "http://localhost:7860/api/admin/system/health",
+			"time": 6,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Health has all services": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Health has all services": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				6
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Health has all services": false
+				}
+			]
+		},
+		{
+			"id": "3bdfae66-1a68-46a1-8a4c-f5f24f402904",
+			"name": "Get All Users (Admin)",
+			"url": "http://localhost:7860/api/admin/users?page=1&per_page=20",
+			"time": 7,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has users": false,
+				"Has total": false,
+				"Pagination fields present": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has users": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Has total": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Pagination fields present": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				7
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has users": false,
+					"Has total": false,
+					"Pagination fields present": false
+				}
+			]
+		},
+		{
+			"id": "31347602-da19-44f1-82cf-eda335ced704",
+			"name": "Search Users (Admin)",
+			"url": "http://localhost:7860/api/admin/users?q=giảng&page=1&per_page=10",
+			"time": 5,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has users": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has users": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has users": false
+				}
+			]
+		},
+		{
+			"id": "250dc998-f322-4e73-ae1e-d9653fa22273",
+			"name": "Create User (Admin)",
+			"url": "http://localhost:7860/api/admin/users",
+			"time": 5,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 201": false,
+				"Response is JSON": true,
+				"Has user": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 201": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has user": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 201": false,
+					"Response is JSON": true,
+					"Has user": false
+				}
+			]
+		},
+		{
+			"id": "e88d653c-2f70-4cf1-9f53-3c5a1e11608b",
+			"name": "Get Single User (Admin)",
+			"url": "http://localhost:7860/api/admin/users/",
+			"time": 5,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false,
+				"Has user": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Has user": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false,
+					"Has user": false
+				}
+			]
+		},
+		{
+			"id": "1b82cfcd-26c7-4c4d-ac94-31acfa6e2b35",
+			"name": "Update User (Admin)",
+			"url": "http://localhost:7860/api/admin/users/",
+			"time": 4,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				4
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false
+				}
+			]
+		},
+		{
+			"id": "4696347b-5cc2-4bef-8f85-afd3774f7465",
+			"name": "Toggle User Active (Admin)",
+			"url": "http://localhost:7860/api/admin/users//toggle-active",
+			"time": 4,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false,
+				"Returns is_active status": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Returns is_active status": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				4
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false,
+					"Returns is_active status": false
+				}
+			]
+		},
+		{
+			"id": "4e41252c-6a34-4609-a939-b6cb94491768",
+			"name": "Toggle User Approval (Admin)",
+			"url": "http://localhost:7860/api/admin/users//toggle-approve",
+			"time": 5,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false,
+				"Returns is_approved status": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Returns is_approved status": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false,
+					"Returns is_approved status": false
+				}
+			]
+		},
+		{
+			"id": "c22d31a5-5279-4c7d-bdbb-f2f54353b708",
+			"name": "Get All Users (Auth BP - Admin)",
+			"url": "http://localhost:7860/api/users?page=1&per_page=20",
+			"time": 8,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has users": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has users": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				8
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has users": false
+				}
+			]
+		},
+		{
+			"id": "bf0319ad-4fb5-441e-95ea-b04b7ecb0a7d",
+			"name": "Update User (Auth BP - Admin)",
+			"url": "http://localhost:7860/api/users/",
+			"time": 5,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false
+				}
+			]
+		},
+		{
+			"id": "98ef7154-c8b1-4dce-99ce-2ac657c2e1eb",
+			"name": "Toggle User (Auth BP - Admin)",
+			"url": "http://localhost:7860/api/users//toggle",
+			"time": 7,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				7
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false
+				}
+			]
+		},
+		{
+			"id": "9dacc23c-3884-47bd-bc4c-808a01056152",
+			"name": "Delete User (Admin Panel)",
+			"url": "http://localhost:7860/api/admin/users/",
+			"time": 4,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"User deleted": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"User deleted": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				4
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"User deleted": false
+				}
+			]
+		},
+		{
+			"id": "c558e32d-500a-440c-a1a7-fdf272df60a3",
+			"name": "Create Academic Year",
+			"url": "http://localhost:7860/api/academic-years",
+			"time": 5,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 201": false,
+				"Response is JSON": true,
+				"Has academic_year": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 201": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has academic_year": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 201": false,
+					"Response is JSON": true,
+					"Has academic_year": false
+				}
+			]
+		},
+		{
+			"id": "38fb92ee-c62b-41e5-a58b-42f96dfad712",
+			"name": "Get All Academic Years",
+			"url": "http://localhost:7860/api/academic-years",
+			"time": 5,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true,
+				"Has academic_years": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has academic_years": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true,
+					"Has academic_years": false
+				}
+			]
+		},
+		{
+			"id": "030417ce-c884-408a-9724-616ba87ac758",
+			"name": "Get Active Academic Year",
+			"url": "http://localhost:7860/api/academic-years/active",
+			"time": 7,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": true
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				}
+			},
+			"times": [
+				7
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": true
+				}
+			]
+		},
+		{
+			"id": "917d090a-f8fc-4fb8-8bac-136f7b75d4ea",
+			"name": "Update Academic Year",
+			"url": "http://localhost:7860/api/academic-years/",
+			"time": 4,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				4
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false
+				}
+			]
+		},
+		{
+			"id": "e54b812b-1545-43c7-9831-60c126bd243f",
+			"name": "Set Active Academic Year",
+			"url": "http://localhost:7860/api/academic-years//set-active",
+			"time": 5,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false,
+				"Response is JSON": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				5
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false,
+					"Response is JSON": false
+				}
+			]
+		},
+		{
+			"id": "9a519f57-0b3d-47ec-844b-79ca4ef5c68f",
+			"name": "Create 2nd Academic Year (for delete test)",
+			"url": "http://localhost:7860/api/academic-years",
+			"time": 8,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 201": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 201": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				8
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 201": false
+				}
+			]
+		},
+		{
+			"id": "a53c2207-34ad-4382-a5c1-6e77f623f94c",
+			"name": "Delete Academic Year",
+			"url": "http://localhost:7860/api/academic-years/",
+			"time": 8,
+			"responseCode": {
+				"code": 404,
+				"name": "NOT FOUND"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 200": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 200": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				8
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 200": false
+				}
+			]
+		},
+		{
+			"id": "09f6c35e-0be5-4b6d-86bd-7ba080c026a2",
+			"name": "Create Task (Admin)",
+			"url": "http://localhost:7860/api/tasks",
+			"time": 7,
+			"responseCode": {
+				"code": 422,
+				"name": "UNPROCESSABLE ENTITY"
+			},
+			"tests": {
+				"Response time < 5s": true,
+				"No server error (5xx)": true,
+				"Status code is 201": false,
+				"Response is JSON": true,
+				"Has task": false
+			},
+			"testPassFailCounts": {
+				"Response time < 5s": {
+					"pass": 1,
+					"fail": 0
+				},
+				"No server error (5xx)": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Status code is 201": {
+					"pass": 0,
+					"fail": 1
+				},
+				"Response is JSON": {
+					"pass": 1,
+					"fail": 0
+				},
+				"Has task": {
+					"pass": 0,
+					"fail": 1
+				}
+			},
+			"times": [
+				7
+			],
+			"allTests": [
+				{
+					"Response time < 5s": true,
+					"No server error (5xx)": true,
+					"Status code is 201": false,
+					"Response is JSON": true,
+					"Has task": false
+				}
+			]
+		}
+	],
+	"count": 1,
+	"totalTime": 814,
+	"collection": {
+		"requests": [
+			{
+				"id": "6cf0316e-886b-41bf-a180-daca3bfd5ec9",
+				"method": "POST"
+			},
+			{
+				"id": "60d2bdbb-fa0a-40ae-8a6a-68416cd3f256",
+				"method": "POST"
+			},
+			{
+				"id": "8ea77f25-5fd1-43e9-9d93-b4f12ff90b94",
+				"method": "POST"
+			},
+			{
+				"id": "15cf31f4-ae68-43da-8c99-7dab0f5394d7",
+				"method": "POST"
+			},
+			{
+				"id": "c78662f5-744e-4e0a-b465-297eb067508b",
+				"method": "POST"
+			},
+			{
+				"id": "e92a4166-4157-4e37-a3d1-33187091b158",
+				"method": "GET"
+			},
+			{
+				"id": "789c1eb1-ae1b-47e6-b979-cec879ee80ef",
+				"method": "GET"
+			},
+			{
+				"id": "4274ebaf-fb32-42a0-a9b6-22b789d768d1",
+				"method": "GET"
+			},
+			{
+				"id": "2af9f572-ef90-4f87-a58a-e1d5c3d99d2a",
+				"method": "PUT"
+			},
+			{
+				"id": "29a2e902-68de-4e58-8227-5d28408dc462",
+				"method": "POST"
+			},
+			{
+				"id": "576ae55f-1578-4f8a-8e18-8ddf63f3d93f",
+				"method": "GET"
+			},
+			{
+				"id": "3bdfae66-1a68-46a1-8a4c-f5f24f402904",
+				"method": "GET"
+			},
+			{
+				"id": "31347602-da19-44f1-82cf-eda335ced704",
+				"method": "GET"
+			},
+			{
+				"id": "250dc998-f322-4e73-ae1e-d9653fa22273",
+				"method": "POST"
+			},
+			{
+				"id": "e88d653c-2f70-4cf1-9f53-3c5a1e11608b",
+				"method": "GET"
+			},
+			{
+				"id": "1b82cfcd-26c7-4c4d-ac94-31acfa6e2b35",
+				"method": "PUT"
+			},
+			{
+				"id": "4696347b-5cc2-4bef-8f85-afd3774f7465",
+				"method": "PUT"
+			},
+			{
+				"id": "4e41252c-6a34-4609-a939-b6cb94491768",
+				"method": "PUT"
+			},
+			{
+				"id": "c22d31a5-5279-4c7d-bdbb-f2f54353b708",
+				"method": "GET"
+			},
+			{
+				"id": "bf0319ad-4fb5-441e-95ea-b04b7ecb0a7d",
+				"method": "PUT"
+			},
+			{
+				"id": "98ef7154-c8b1-4dce-99ce-2ac657c2e1eb",
+				"method": "PUT"
+			},
+			{
+				"id": "9dacc23c-3884-47bd-bc4c-808a01056152",
+				"method": "DELETE"
+			},
+			{
+				"id": "c558e32d-500a-440c-a1a7-fdf272df60a3",
+				"method": "POST"
+			},
+			{
+				"id": "38fb92ee-c62b-41e5-a58b-42f96dfad712",
+				"method": "GET"
+			},
+			{
+				"id": "030417ce-c884-408a-9724-616ba87ac758",
+				"method": "GET"
+			},
+			{
+				"id": "917d090a-f8fc-4fb8-8bac-136f7b75d4ea",
+				"method": "PUT"
+			},
+			{
+				"id": "e54b812b-1545-43c7-9831-60c126bd243f",
+				"method": "PUT"
+			},
+			{
+				"id": "9a519f57-0b3d-47ec-844b-79ca4ef5c68f",
+				"method": "POST"
+			},
+			{
+				"id": "a53c2207-34ad-4382-a5c1-6e77f623f94c",
+				"method": "DELETE"
+			},
+			{
+				"id": "09f6c35e-0be5-4b6d-86bd-7ba080c026a2",
+				"method": "POST"
+			}
+		]
+	}
+}

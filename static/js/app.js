@@ -19,7 +19,7 @@ const API = {
         const url = `${this.baseUrl}${endpoint}`;
         const token = this.getToken();
         const headers = { ...options.headers };
-        
+
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         }
@@ -36,7 +36,7 @@ const API = {
 
             // Parse json safely
             let data = {};
-            try { data = await response.json(); } catch(e) {}
+            try { data = await response.json(); } catch (e) { }
 
             if ((response.status === 401 || response.status === 422) && token) {
                 // Only redirect if we HAD a token and it expired or secret changed (422)
@@ -216,8 +216,37 @@ const Realtime = {
         });
 
         this.socket.on('task_updated', (data) => {
+            console.log('[Socket] task_updated received:', data);
             // Dispatch specifically for task module
             window.dispatchEvent(new CustomEvent('task-realtime-update', { detail: data }));
+        });
+
+        this.socket.on('task_list_updated', (data) => {
+            const currentUserId = parseInt(sessionStorage.getItem('user_id'));
+            const userRole = sessionStorage.getItem('role');
+
+            console.log('[Socket] task_list_updated received:', data);
+            console.log(`[Socket Debug] CurrentUser: ${currentUserId}, Role: ${userRole}`);
+
+            // Show toast notification only for relevant users (assignees or creator)
+            if (data.action === 'status_change' && data.changer_name) {
+                const assigneeIds = (data.assignee_ids || []).map(id => Number(id));
+                const isAssignee = assigneeIds.includes(Number(currentUserId));
+                const isCreator = Number(data.creator_id) === Number(currentUserId);
+                const isChanger = Number(data.changer_id) === Number(currentUserId);
+
+                console.log(`[Socket Filter Detail] Task: ${data.task_title}, Changer: ${data.changer_id}, TargetAssignees: ${assigneeIds}, TargetCreator: ${data.creator_id}`);
+                console.log(`[Socket Filter Logic] !isChanger: ${!isChanger}, isAssignee: ${isAssignee}, isCreator: ${isCreator}`);
+
+                // Only show toast if user is directly involved (assignee or creator)
+                if (!isChanger && (isAssignee || isCreator)) {
+                    Toast.info(`${data.changer_name} đã chuyển "${data.task_title}" sang ${data.new_status}`);
+                } else if (!isChanger) {
+                    console.log(`[Socket Filter] Suppressing toast for User ${currentUserId} (not an assignee or creator)`);
+                }
+            }
+            // Broadcast for Kanban board and task list sync across all users
+            window.dispatchEvent(new CustomEvent('task-list-realtime-update', { detail: data }));
         });
     },
 
@@ -240,10 +269,10 @@ const Realtime = {
                 if (!isInitial && newCount > this.lastUnreadCount) {
                     // We have new notifications!
                     Notifications.load();
-                    
+
                     // Dispatch event for other modules to react (Realtime Refresh)
-                    window.dispatchEvent(new CustomEvent('new-notification', { 
-                        detail: { count: newCount } 
+                    window.dispatchEvent(new CustomEvent('new-notification', {
+                        detail: { count: newCount }
                     }));
 
                     // Subtle animation for the dot
@@ -310,7 +339,7 @@ const Notifications = {
                     <i class="${iconMap[n.notification_type] || iconMap.info}"></i>
                 </div>
                 <div class="notification-text">
-                    <div class="notification-title">${n.title} ${n.is_read ? '' : '<span class="badge bg-primary ms-1" style="font-size: 0.5rem; padding: 2px 4px;">Mới</span>'}</div>
+                    <div class="notification-title">${n.title} ${n.is_read ? '' : '<span class="badge bg-danger ms-1" style="font-size: 0.5rem; padding: 2px 4px;">Mới</span>'}</div>
                     <div class="notification-message">${n.message}</div>
                     <div class="notification-time">${timeAgo(n.created_at)}</div>
                 </div>
@@ -334,11 +363,11 @@ const Notifications = {
                 window.location.href = '/documents';
             }
             // Add more types as needed...
-            
+
             // Close dropdown
             const dropdown = document.getElementById('notification-dropdown');
             if (dropdown) dropdown.classList.remove('show');
-        } catch (e) { 
+        } catch (e) {
             console.error('Notification action error:', e);
             // Fallback: just reload
             this.load();
@@ -401,8 +430,7 @@ function getStatusLabel(status) {
     const map = {
         'todo': 'Chưa bắt đầu',
         'in_progress': 'Đang làm',
-        'done': 'Hoàn thành',
-        'approved': 'Đã duyệt'
+        'done': 'Hoàn thành'
     };
     return map[status] || status;
 }
@@ -412,7 +440,6 @@ function getStatusBadge(status) {
         'todo': '<span class="badge-status badge-todo"><i class="fas fa-circle" style="font-size:6px"></i> Chưa bắt đầu</span>',
         'in_progress': '<span class="badge-status badge-progress"><i class="fas fa-circle" style="font-size:6px"></i> Đang làm</span>',
         'done': '<span class="badge-status badge-done"><i class="fas fa-circle" style="font-size:6px"></i> Hoàn thành</span>',
-        'approved': '<span class="badge-status" style="background:rgba(108,92,231,0.1);color:var(--status-approved)"><i class="fas fa-shield-check" style="font-size:6px"></i> Đã duyệt</span>',
     };
     return map[status] || status;
 }
