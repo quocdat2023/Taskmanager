@@ -1389,8 +1389,14 @@ textarea.form-control-custom {
 }
 
 .notification-icon.task {
-    background: rgba(108, 92, 231, 0.1);
-    color: var(--primary);
+    background: rgba(98, 78, 251, 0.1);
+    color: var(--text-accent);
+}
+
+
+.notification-icon.tasks {
+    background: rgba(251, 186, 57, 0.1);
+    color: var(--accent-orange);
 }
 
 .notification-icon.schedule {
@@ -1406,6 +1412,16 @@ textarea.form-control-custom {
 .notification-icon.document {
     background: rgba(253, 203, 110, 0.1);
     color: var(--accent-orange);
+}
+
+.notification-icon.task_request {
+    background: rgba(77, 183, 249, 0.1);
+    color: var(--accent-blue);
+}
+
+.notification-icon.info {
+    background: rgba(157, 249, 77, 0.1);
+    color: var(--accent-green);
 }
 
 .notification-text {

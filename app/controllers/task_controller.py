@@ -27,7 +27,7 @@ def create_task():
     user_id = get_jwt_identity()
     claims = get_jwt()
     role = claims.get('role', 'student')
-    
+
     assignee_ids = data.pop('assignee_ids', [])
 
     task = task_service.create_task(
@@ -58,7 +58,7 @@ def create_task():
                 email_error = msg
         except Exception as e:
             email_error = str(e)
-        
+
     return jsonify({
         'message': 'Task đã được tạo',
         'task': task.to_dict(),
@@ -73,7 +73,7 @@ def get_tasks():
     user_id = get_jwt_identity()
     claims = get_jwt()
     role = claims.get('role', 'student')
-    
+
     semester      = request.args.get('semester')
     academic_year = request.args.get('academic_year')
     status        = request.args.get('status')
@@ -86,7 +86,7 @@ def get_tasks():
         status=status, search=search,
         page=page, per_page=per_page
     )
-    
+
     return jsonify({
         'tasks': [t.to_dict() for t in paginated.items],
         'total': paginated.total,
@@ -104,9 +104,9 @@ def get_tasks():
 def get_all_tasks():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
-    
+
     paginated = task_service.get_all_tasks(page=page, per_page=per_page)
-    
+
     return jsonify({
         'tasks': [t.to_dict() for t in paginated.items],
         'total': paginated.total,
@@ -134,13 +134,28 @@ def update_task(task_id):
     user_id = get_jwt_identity()
     claims = get_jwt()
     role = claims.get('role', 'student')
-    
+
     data['user_role'] = role
     task = task_service.update_task(task_id, changed_by=user_id, **data)
     if not task:
         return jsonify({'error': 'Task không tồn tại'}), 404
-        
-    return jsonify({'message': 'Task đã được cập nhật', 'task': task.to_dict()}), 200
+
+    approval_summary = getattr(task, 'approval_summary', None) or {}
+    approval_pending = bool(approval_summary.get('requires_admin_approval'))
+
+    message = 'Task đã được cập nhật'
+    if approval_pending and role != 'admin':
+        if approval_summary.get('requested_remove_user_ids') or approval_summary.get('already_pending_remove_user_ids'):
+            message = 'Yêu cầu xóa thành viên đã được gửi, vui lòng chờ Admin phê duyệt.'
+        else:
+            message = 'Yêu cầu thay đổi thành viên đã được gửi, vui lòng chờ Admin phê duyệt.'
+
+    return jsonify({
+        'message': message,
+        'task': task.to_dict(),
+        'approval_pending': approval_pending,
+        'approval_summary': approval_summary
+    }), 200
 
 
 @task_bp.route('/tasks/<int:task_id>/history', methods=['GET'])
@@ -236,15 +251,15 @@ def process_request(request_id):
     data = request.get_json()
     status = data.get('status') # 'approved' or 'rejected'
     note = data.get('note')
-    
+
     admin_id = get_jwt_identity()
     result = task_service.process_request(request_id, status, admin_id, note)
-    
+
     if result is True:
         return jsonify({'message': 'Yêu cầu đã được phê duyệt và task đã được xóa.'}), 200
     if not result:
         return jsonify({'error': 'Yêu cầu không tồn tại'}), 404
-        
+
     return jsonify({'message': 'Yêu cầu đã được xử lý thành công.', 'request': result.to_dict()}), 200
 
 
@@ -307,11 +322,11 @@ def delete_comment(task_id, comment_id):
     user_id = get_jwt_identity()
     claims = get_jwt()
     role = claims.get('role', 'student')
-    
+
     success = task_service.delete_comment(comment_id, user_id, role)
     if not success:
         return jsonify({'error': 'Bạn không có quyền xóa thảo luận này'}), 403
-        
+
     return jsonify({'message': 'Đã xóa thảo luận'}), 200
 
 
@@ -324,7 +339,7 @@ def add_attachment(task_id):
     file = request.files['file']
     if file.filename == '':
         return jsonify({'error': 'Chưa chọn file'}), 400
-    
+
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         # Unique name
@@ -333,11 +348,11 @@ def add_attachment(task_id):
         os.makedirs(upload_folder, exist_ok=True)
         file_path = os.path.join(upload_folder, unique_name)
         file.save(file_path)
-        
+
         user_id = get_jwt_identity()
         a = task_service.add_attachment(task_id, user_id, filename, unique_name, file.content_type)
         return jsonify({'attachment': a.to_dict()}), 201
-    
+
     return jsonify({'error': 'Định dạng file không được hỗ trợ'}), 400
 
 

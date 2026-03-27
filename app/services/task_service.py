@@ -109,8 +109,17 @@ class TaskService:
         if task:
             self.repo.add_history(task_id, changed_by, 'update', 'Cập nhật thông tin công việc.')
             
+            approval_summary = {
+                'requires_admin_approval': False,
+                'requested_assign_user_ids': [],
+                'requested_remove_user_ids': [],
+                'already_pending_assign_user_ids': [],
+                'already_pending_remove_user_ids': []
+            }
+
             # Handle assignees logic
             if assignee_ids is not None:
+                assignee_ids = [int(i) for i in assignee_ids]
                 existing_assignee_ids = [a.user_id for a in task.assignments]
                 
                 if user_role == 'admin':
@@ -118,6 +127,8 @@ class TaskService:
                     for uid in existing_assignee_ids:
                         if uid not in assignee_ids:
                             TaskAssignment.query.filter_by(task_id=task.id, user_id=uid).delete()
+                            req = self.repo.create_request(task_id, changed_by, 'remove', target_user_id=uid)
+                            self.repo.update_request_status(req.id, 'approved', changed_by, 'Admin cập nhật thành viên trực tiếp.')
                     
                     newly_assigned_ids = []
                     for uid in assignee_ids:
@@ -147,23 +158,63 @@ class TaskService:
                         except Exception as e:
                             print("Lỗi gửi mail update_task:", str(e))
                 else:
-                    # Non-admin: additions need approval
+                    # Non-admin: additions and removals need approval
+                    
+                    # 1. Handle additions
                     for uid in assignee_ids:
                         if uid not in existing_assignee_ids:
-                            self.repo.create_request(task_id, changed_by, 'assign', target_user_id=uid)
-                            self.repo.add_history(task_id, changed_by, 'request_sent', f'Yêu cầu thêm thành viên {uid} vào công việc.')
+                            pending_request = self.repo.get_pending_request(
+                                task_id,
+                                'assign',
+                                target_user_id=uid,
+                                requester_id=changed_by
+                            )
+                            if pending_request:
+                                approval_summary['already_pending_assign_user_ids'].append(uid)
+                            else:
+                                self.repo.create_request(task_id, changed_by, 'assign', target_user_id=uid)
+                                self.repo.add_history(task_id, changed_by, 'request_sent', f'Yêu cầu thêm thành viên {uid} vào công việc.')
+                                approval_summary['requested_assign_user_ids'].append(uid)
                     
+                    # 2. Handle removals
+                    for uid in existing_assignee_ids:
+                        if uid not in assignee_ids:
+                            pending_request = self.repo.get_pending_request(
+                                task_id,
+                                'remove',
+                                target_user_id=uid,
+                                requester_id=changed_by
+                            )
+                            if pending_request:
+                                approval_summary['already_pending_remove_user_ids'].append(uid)
+                            else:
+                                self.repo.create_request(task_id, changed_by, 'remove', target_user_id=uid)
+                                self.repo.add_history(task_id, changed_by, 'request_sent', f'Yêu cầu xóa thành viên {uid} khỏi công việc.')
+                                approval_summary['requested_remove_user_ids'].append(uid)
+
+                    approval_summary['requires_admin_approval'] = any(approval_summary[key] for key in (
+                        'requested_assign_user_ids',
+                        'requested_remove_user_ids',
+                        'already_pending_assign_user_ids',
+                        'already_pending_remove_user_ids'
+                    ))
+
                     # Notify admins
                     admins = self.user_repo.get_by_role('admin')
-                    if admins:
+                    if admins and (
+                        approval_summary['requested_assign_user_ids'] or
+                        approval_summary['requested_remove_user_ids']
+                    ):
                         admin_ids = [a.id for a in admins]
                         self.notification_repo.create_bulk(
                             user_ids=admin_ids,
-                            title='Yêu cầu thêm thành viên mới',
-                            message=f'Có yêu cầu thêm người vào task "{task.title}".',
+                            title='Yêu cầu thay đổi thành viên',
+                            message=f'Có yêu cầu thêm/xóa người trong task "{task.title}".',
                             notification_type='task_request',
                             reference_type='request'
                         )
+
+            task.approval_summary = approval_summary
 
             # Notify assignees
             for assignment in task.assignments:
@@ -332,6 +383,16 @@ class TaskService:
                 TaskAssignment.query.filter_by(task_id=req.task_id, user_id=req.target_user_id).delete()
                 db.session.commit()
                 self.repo.add_history(req.task_id, admin_id, 'approved', f'Đã phê duyệt rút khỏi công việc cho user {req.target_user_id}')
+            elif req.request_type == 'remove':
+                TaskAssignment.query.filter_by(task_id=req.task_id, user_id=req.target_user_id).delete()
+                db.session.commit()
+                self.repo.add_history(req.task_id, admin_id, 'approved', f'Đã phê duyệt xóa thành viên {req.target_user_id} khỏi công việc')
+                self.notification_repo.create_notification(
+                    user_id=req.target_user_id,
+                    title='Bạn đã bị xóa khỏi công việc',
+                    message=f'Admin đã phê duyệt yêu cầu xóa bạn khỏi công việc: {task.title}',
+                    notification_type='info'
+                )
         
         elif status == 'rejected':
             self.repo.add_history(req.task_id, admin_id, 'rejected', f'Admin đã từ chối yêu cầu. Ghi chú: {admin_note or "Không có"}')

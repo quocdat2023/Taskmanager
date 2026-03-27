@@ -821,8 +821,12 @@ const Tasks = {
         };
         try {
             if (taskId) {
-                await API.put(`/tasks/${taskId}`, payload);
-                Toast.success('Cập nhật công việc thành công');
+                const res = await API.put(`/tasks/${taskId}`, payload);
+                if (res?.approval_pending) {
+                    Toast.success(res.message || 'Yêu cầu thay đổi thành viên đã được gửi, vui lòng chờ Admin phê duyệt');
+                } else {
+                    Toast.success(res?.message || 'Cập nhật công việc thành công');
+                }
             } else {
                 const res = await API.post('/tasks', payload);
                 Toast.success('Tạo công việc thành công');

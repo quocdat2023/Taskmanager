@@ -191,6 +191,20 @@ class TaskRepository(BaseRepository):
         db.session.commit()
         return req
 
+    def get_pending_request(self, task_id, request_type, target_user_id=None, requester_id=None):
+        query = TaskRequest.query.filter_by(
+            task_id=task_id,
+            request_type=request_type,
+            status='pending'
+        )
+        if target_user_id is None:
+            query = query.filter(TaskRequest.target_user_id.is_(None))
+        else:
+            query = query.filter_by(target_user_id=target_user_id)
+        if requester_id is not None:
+            query = query.filter_by(requester_id=requester_id)
+        return query.first()
+
     def get_pending_requests(self):
         return TaskRequest.query.filter_by(status='pending').order_by(TaskRequest.created_at.desc()).all()
 

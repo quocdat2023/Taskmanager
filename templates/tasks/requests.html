@@ -116,12 +116,12 @@ const Requests = {
     },
 
     getTypeLabel(type) {
-        const labels = { 'assign': 'Giao việc', 'delete': 'Xóa task', 'withdraw': 'Rút khỏi task' };
+        const labels = { 'assign': 'Giao việc', 'delete': 'Xóa task', 'withdraw': 'Rút khỏi task', 'remove': 'Xóa thành viên' };
         return labels[type] || type;
     },
 
     getTypeClass(type) {
-        const classes = { 'assign': 'bg-info', 'delete': 'bg-danger', 'withdraw': 'bg-warning text-dark' };
+        const classes = { 'assign': 'bg-info', 'delete': 'bg-danger', 'withdraw': 'bg-warning text-dark', 'remove': 'bg-dark text-white' };
         return classes[type] || 'bg-secondary';
     },
 
