@@ -34,16 +34,28 @@
     <script>
         // Sync Flask session role to sessionStorage for JS components
         {% if session.get('user_id') %}
-        if (!sessionStorage.getItem('user_id')) {
-            sessionStorage.setItem('user_id', "{{ session.get('user_id') }}");
-            sessionStorage.setItem('role', "{{ session.get('role') }}");
-            sessionStorage.setItem('full_name', "{{ session.get('full_name') }}");
-            sessionStorage.setItem('token', "{{ session.get('token') }}");
-            sessionStorage.setItem('reminder_preference', "{{ session.get('reminder_preference', '5') }}");
-        }
+        sessionStorage.setItem('user_id', "{{ session.get('user_id') }}");
+        sessionStorage.setItem('role', "{{ session.get('role') }}");
+        sessionStorage.setItem('full_name', "{{ session.get('full_name') }}");
+        sessionStorage.setItem('token', "{{ session.get('token') }}");
+        sessionStorage.setItem('reminder_preference', "{{ session.get('reminder_preference', '5') }}");
         {% endif %}
     </script>
+    <footer class="main-footer">
+        <div class="container-fluid text-center">
+            <p class="mb-0">Copyright &copy; <span id="current-year"></span> Trần Công Đức</p>
+        </div>
+    </footer>
+
     {% block scripts %}{% endblock %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const yearElem = document.getElementById('current-year');
+            if (yearElem) {
+                yearElem.textContent = new Date().getFullYear();
+            }
+        });
+    </script>
 </body>
 
 </html>

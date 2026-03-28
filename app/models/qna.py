@@ -45,9 +45,13 @@ class Answer(db.Model):
     content = db.Column(db.Text, nullable=False)
     question_id = db.Column(db.Integer, db.ForeignKey('questions.id'), nullable=False)
     answered_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('answers.id'), nullable=True)
     is_accepted = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship for nesting
+    replies = db.relationship('Answer', backref=db.backref('parent', remote_side=[id]), lazy='dynamic', cascade='all, delete-orphan')
 
     def to_dict(self):
         return {
@@ -57,6 +61,9 @@ class Answer(db.Model):
             'answered_by': self.answered_by,
             'answerer_name': self.answerer.full_name if self.answerer else None,
             'answerer_role': self.answerer.role if self.answerer else None,
+            'answerer_email': self.answerer.email if self.answerer else None,
+            'parent_id': self.parent_id,
+            'parent_name': self.parent.answerer.full_name if self.parent and self.parent.answerer else None,
             'is_accepted': self.is_accepted,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }

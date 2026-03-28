@@ -1,5 +1,6 @@
 from app.repositories.qna_repository import QnARepository
 from app.repositories.notification_repository import NotificationRepository
+from app.extensions import socketio
 
 
 class QnAService:
@@ -16,11 +17,12 @@ class QnAService:
         )
         return question
 
-    def create_answer(self, content, question_id, answered_by):
+    def create_answer(self, content, question_id, answered_by, parent_id=None):
         answer = self.repo.create_answer(
             content=content,
             question_id=question_id,
-            answered_by=answered_by
+            answered_by=answered_by,
+            parent_id=parent_id
         )
 
         # Notify question asker
@@ -34,6 +36,9 @@ class QnAService:
                 reference_type='question',
                 reference_id=question.id
             )
+
+        # Broadcast real-time update
+        socketio.emit('qna_update', {'action': 'new_answer', 'question_id': question_id})
 
         return answer
 
@@ -57,3 +62,16 @@ class QnAService:
 
     def delete_question(self, question_id):
         return self.repo.delete(question_id)
+
+    def delete_answer(self, answer_id):
+        answer = self.repo.get_answer_by_id(answer_id)
+        if answer:
+            question_id = answer.question_id
+            res = self.repo.delete_answer(answer_id)
+            if res:
+                socketio.emit('qna_update', {'action': 'delete_answer', 'question_id': question_id})
+            return res
+        return False
+
+    def get_answer(self, answer_id):
+        return self.repo.get_answer_by_id(answer_id)

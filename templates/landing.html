@@ -4,159 +4,657 @@
 
 {% block body %}
 <!-- Hero Section -->
-<div class="landing-hero">
-    <div class="container text-center">
-        <h1 class="display-3 fw-bold mb-4 fade-in">Hệ thống Quản lý EduTask</h1>
-        <p class="lead mb-5 fade-in" style="animation-delay: 0.2s;">Nền tảng quản lý công việc, lịch học và thảo luận tri thức tối ưu cho Giảng viên & Sinh viên.</p>
-        <div class="d-flex justify-content-center gap-3 fade-in" style="animation-delay: 0.4s;">
-            {% if session.get('user_id') %}
-                <a href="{{ url_for('pages.dashboard') }}" class="btn-primary-custom px-5 py-3 rounded-pill btn-lg shadow">
-                    <i class="fas fa-th-large me-2"></i> Vào Dashboard
-                </a>
-            {% else %}
-                <a href="{{ url_for('pages.login_page') }}" class="btn-primary-custom px-5 py-3 rounded-pill btn-lg shadow">
-                    <i class="fas fa-sign-in-alt me-2"></i> Đăng nhập ngay
-                </a>
-                <a href="{{ url_for('pages.register_page') }}" class="btn-glass px-5 py-3 rounded-pill btn-lg">
-                     Tham gia EduTask
-                </a>
-            {% endif %}
-        </div>
-    </div>
-</div>
-
-<!-- Features section (Quick overview) -->
-<div class="container py-5" id="features">
-    <div class="row g-4 text-center">
-        <div class="col-md-4">
-            <div class="glass-card p-4 h-100">
-                <i class="fas fa-tasks text-info mb-3" style="font-size: 2.5rem;"></i>
-                <h4 class="fw-bold">Quản lý Task</h4>
-                <p class="text-secondary">Giao nhiệm vụ và theo dõi tiến độ một cách chuyên nghiệp giữa các Giảng viên.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="glass-card p-4 h-100">
-                <i class="fas fa-calendar-alt text-warning mb-3" style="font-size: 2.5rem;"></i>
-                <h4 class="fw-bold">Lịch học & Deadline</h4>
-                <p class="text-secondary">Thông báo lịch học và nhắc nhở thời hạn quan trọng cho sinh viên nhanh chóng.</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="glass-card p-4 h-100">
-                <i class="fas fa-comments text-primary mb-3" style="font-size: 2.5rem;"></i>
-                <h4 class="fw-bold">Diễn đàn Thảo luận</h4>
-                <p class="text-secondary">Nơi sinh viên có thể đặt câu hỏi và nhận giải đáp trực tiếp từ Giảng viên.</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Forum Section (Landing Page Focus) -->
-<div class="container py-5">
-    <div class="d-flex justify-content-between align-items-end mb-4">
-        <div>
-            <h2 class="fw-bold mb-0">Diễn đàn Thảo luận (Forum)</h2>
-            <p class="text-secondary mb-0">Cộng đồng hỏi đáp kiến thức EduTask</p>
-        </div>
-        {% if session.get('user_id') %}
-            <a href="{{ url_for('pages.qna_page') }}" class="btn-primary-custom btn-sm">Xem tất cả thảo luận</a>
-        {% endif %}
-    </div>
-
-    <div class="row">
-        <div class="col-lg-8" id="landing-qna-list">
-            <!-- Loading state -->
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary"></div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="glass-card">
-                <h5 class="fw-bold mb-3">Về EduTask Forum</h5>
-                <p class="text-secondary" style="font-size: 0.9rem;">
-                    Đây là không gian công cộng nơi mọi sinh viên có thể tìm kiếm lời giải cho các vấn đề học thuật. 
-                    Mọi thảo luận đều được giám sát bởi đội ngũ Giảng viên tâm huyết.
-                </p>
-                <hr style="border-color: var(--border-color);">
-                <ul class="list-unstyled mb-0" style="font-size: 0.9rem; color: var(--text-secondary);">
-                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Hỏi đáp môn học 24/7</li>
-                    <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Giảng viên trực tiếp trả lời</li>
-                    <li><i class="fas fa-check-circle text-success me-2"></i> Lưu trữ tài liệu ôn tập</li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
-
 <style>
-.landing-hero {
-    background: linear-gradient(135deg, rgba(15, 12, 41, 0.9), rgba(48, 43, 99, 0.8), rgba(36, 36, 62, 0.9)), 
-                url('https://images.unsplash.com/photo-1523050853063-bd8012fec046?auto=format&fit=crop&q=80&w=2000');
-    background-size: cover;
-    background-position: center;
-    padding: 120px 0;
-    color: white;
-    margin-bottom: 50px;
-}
-.qna-forum-item {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-.qna-forum-item:hover {
-    transform: translateY(-3px);
-    border-color: var(--primary-light);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-}
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    :root {
+        --primary-red: #ff4742;
+        --dark-text: #1a1a1a;
+        --light-text: #666;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    /* Header */
+    header {
+        padding: 20px 0;
+    }
+
+    header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        font-weight: 700;
+        font-size: 24px;
+        color: #333;
+    }
+
+    .logo span {
+        color: var(--primary);
+    }
+
+    nav ul {
+        display: flex;
+        list-style: none;
+    }
+
+    nav ul li {
+        margin: 0 15px;
+    }
+
+    nav ul li a {
+        text-decoration: none;
+        color: var(--light-text);
+        font-size: 14px;
+        transition: 0.3s;
+    }
+
+    nav ul li a.active,
+    nav ul li a:hover {
+        color: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .login {
+        text-decoration: none;
+        color: var(--dark-text);
+        font-weight: 600;
+    }
+
+    .btn-signup {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        padding: 10px 25px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .btn-signup:hover {
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        color: white;
+    }
+
+    .btn-red:hover {
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+        color: white;
+    }
+
+    .menu-icon {
+        font-size: 20px;
+        display: none;
+        /* Hiện trên mobile */
+    }
+
+    /* Hero Section */
+    .hero {
+        padding: 60px 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .hero-content {
+        flex: 1;
+        max-width: 550px;
+    }
+
+    .hero-content h1 {
+        font-size: 52px;
+        line-height: 1.2;
+        color: var(--dark-text);
+        margin-bottom: 20px;
+    }
+
+    .text-red {
+        color: var(--primary);
+    }
+
+    .hero-content p {
+        color: var(--light-text);
+        margin-bottom: 30px;
+        line-height: 1.6;
+    }
+
+    /* Buttons */
+    .hero-buttons {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 40px;
+    }
+
+    .btn {
+        padding: 12px 30px;
+        border-radius: 25px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 14px;
+        transition: 0.3s;
+    }
+
+    .btn-red {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+    }
+
+    .btn-outline {
+        border: 1px solid #ddd;
+        color: var(--light-text);
+    }
+
+    /* Social & Contact */
+    .social-contact {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .social-icons {
+        display: flex;
+        gap: 15px;
+    }
+
+    .social-icons a {
+        color: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        font-size: 16px;
+    }
+
+    .phone-number {
+        font-weight: 600;
+        color: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        font-size: 14px;
+    }
+
+    /* Hero Image Area */
+    .hero-image-container {
+        flex: 1;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .red-circle-bg {
+        position: absolute;
+        width: 450px;
+        height: 450px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        border-radius: 50%;
+        z-index: -1;
+        bottom: -50px;
+        right: -20px;
+    }
+
+    .student-img {
+        width: 100%;
+        max-width: 450px;
+        z-index: 1;
+        /* Hiệu ứng cắt ảnh nếu cần, ở đây giả định ảnh đã tách nền */
+    }
+
+    /* Badge */
+    .happy-badge {
+        position: absolute;
+        bottom: 50px;
+        left: -40px;
+        background: rgba(255, 71, 66, 0.8);
+        backdrop-filter: blur(5px);
+        padding: 10px 20px;
+        border-radius: 50px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+        z-index: 2;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .student-avatars {
+        display: flex;
+    }
+
+    .student-avatars img {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid white;
+        margin-left: -10px;
+    }
+
+    .student-avatars img:first-child {
+        margin-left: 0;
+    }
+
+    .happy-badge span {
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    /* Decor stars */
+    .star {
+        position: absolute;
+        color: rgba(255, 71, 66, 0.3);
+    }
+
+    .star-1 {
+        top: 0;
+        right: 20%;
+        font-size: 30px;
+    }
+
+    .star-2 {
+        bottom: 30%;
+        left: 0;
+        font-size: 20px;
+    }
+
+    .star-3 {
+        bottom: 10%;
+        left: 0;
+        font-size: 30px;
+    }
+
+    .star-4 {
+        bottom: 50%;
+        left: 0;
+        font-size: 20px;
+    }
+
+    /* Dots */
+    .slider-dots {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+    }
+
+    .dot {
+        width: 10px;
+        height: 10px;
+        background: #ddd;
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .dot.active {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        width: 25px;
+        border-radius: 10px;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 992px) {
+        .hero-wrapper {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .hero-content h1 {
+            font-size: 36px;
+        }
+
+        .hero-buttons,
+        .social-icons {
+            justify-content: center;
+        }
+
+        .hero-image-container {
+            margin-top: 50px;
+        }
+
+        nav {
+            display: none;
+        }
+
+        .menu-icon {
+            display: block;
+        }
+
+        .red-circle-bg {
+            width: 300px;
+            height: 300px;
+        }
+    }
+
+    /* Forum Section Styles */
+    .forum-section {
+        padding: 80px 0;
+        background-color: #f8fbff;
+        /* Màu nền nhẹ để phân biệt các phần */
+    }
+
+    .forum-header {
+        margin-bottom: 40px;
+    }
+
+    .forum-header h2 {
+        font-size: 32px;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 5px;
+    }
+
+    .forum-header p {
+        color: #64748b;
+        font-size: 16px;
+    }
+
+    .forum-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        /* Chia tỉ lệ 2 cột: 1 cột chính, 1 cột sidebar */
+        gap: 30px;
+    }
+
+    /* Post Card Styling */
+    .post-card {
+        background: #fff;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+    }
+
+    .post-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 25px;
+    }
+
+    .post-title-area h3 {
+        font-size: 20px;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+
+    .post-snippet {
+        color: #94a3b8;
+        font-size: 14px;
+    }
+
+    .badge {
+        padding: 6px 15px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .badge.yellow {
+        background-color: #fff8e6;
+        color: #f59e0b;
+    }
+
+    .badge.green {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .post-meta {
+        display: flex;
+        justify-content: space-between;
+        color: #64748b;
+        font-size: 14px;
+        border-top: 1px solid #f1f5f9;
+        padding-top: 15px;
+    }
+
+    .meta-left,
+    .meta-right {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .dot-separator {
+        color: #cbd5e1;
+    }
+
+    .post-meta i {
+        margin-right: 5px;
+    }
+
+    /* Sidebar Styling */
+    .info-card {
+        background: #fff;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+    }
+
+    .info-card h3 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        color: #1e293b;
+    }
+
+    .info-card p {
+        font-size: 14px;
+        line-height: 1.7;
+        color: #64748b;
+        margin-bottom: 25px;
+    }
+
+    .feature-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .feature-list li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 15px;
+        font-size: 15px;
+        font-weight: 500;
+        color: #334155;
+    }
+
+    .feature-list i {
+        color: #22c55e;
+        /* Màu xanh của icon check */
+        font-size: 18px;
+    }
+
+    /* Responsive cho Diễn đàn */
+    @media (max-width: 992px) {
+        .forum-grid {
+            grid-template-columns: 1fr;
+            /* Chuyển thành 1 cột trên mobile */
+        }
+    }
 </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="container">
+            <div class="sidebar-brand" style="border-bottom: none !important;">
+                <div class="sidebar-brand-icon">
+                    <i class="fas fa-layer-group text-white"></i>
+                </div>
+                <div class="sidebar-brand-text">EduTask</div>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="" class="active">Trang chủ</a></li>
+                    <li><a href="{{ url_for('pages.dashboard') }}">Dashboard</a></li>
+                    <li><a href="{{ url_for('pages.qna_page') }}">Diễn đàn</a></li>
+                    <li><a href="{{ url_for('pages.schedules_page') }}">Lịch học</a></li>
+                </ul>
+            </nav>
+            <div class="header-right">
+                <a href="{{url_for('pages.login_page')}}" class="btn btn-signup">Đăng nhập</a>
+                <a href="{{url_for('pages.register_page')}}" class="btn btn-outline">Đăng ký</a>
+                <i class="fas fa-bars menu-icon"></i>
+            </div>
+        </div>
+    </header>
+
+    <main class="hero">
+        <div class="container hero-wrapper">
+            <!-- Nội dung bên trái -->
+            <div class="hero-content">
+                <h1><span class="text-red">Khởi đầu hành trình</span> Chinh phục ước mơ cùng bạn</h1>
+                <p>Nền tảng quản lý công việc, lịch học và thảo luận tri thức tối ưu cho Giảng viên & Sinh viên.</p>
+
+                <div class="hero-buttons">
+                    <a href="{{url_for('pages.login_page')}}" class="btn btn-red">Đăng nhập</a>
+                    <a href="{{url_for('pages.register_page')}}" class="btn btn-outline">Đăng ký</a>
+                </div>
+
+                <div class="social-contact">
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                    <p class="phone-number">SĐT: 0364396140</p>
+                </div>
+            </div>
+
+            <!-- Hình ảnh bên phải -->
+            <div class="hero-image-container">
+                <div class="red-circle-bg"></div>
+                <!-- Thay link ảnh thật của bạn vào đây -->
+                <img src="https://eduport.webestica.com/assets/images/element/07.png" alt="Student" class="student-img">
+
+                <!-- Badge 30K Happy Students -->
+                <div class="happy-badge">
+                    <div class="student-avatars">
+                        <img src="https://i.pravatar.cc/150?u=1" alt="s1">
+                        <img src="https://i.pravatar.cc/150?u=2" alt="s2">
+                        <img src="https://i.pravatar.cc/150?u=3" alt="s3">
+                    </div>
+                    <span>10k Sinh viên tham gia</span>
+                </div>
+
+                <!-- Các ngôi sao trang trí -->
+                <i class="fas fa-star star star-1"></i>
+                <i class="fas fa-star star star-2"></i>
+                <i class="fas fa-star star star-3"></i>
+                <i class="fas fa-star star star-4"></i>
+            </div>
+        </div>
+
+        <!-- Slider dots -->
+        <!-- <div class="slider-dots">
+            <span class="dot"></span>
+            <span class="dot active"></span>
+            <span class="dot"></span>
+        </div> -->
+        <section class="forum-section" style="display: none;">
+            <div class="container">
+                <!-- Tiêu đề phần diễn đàn -->
+                <div class="forum-header">
+                    <h2>Diễn đàn Thảo luận (Forum)</h2>
+                    <p>Cộng đồng hỏi đáp kiến thức EduTask</p>
+                </div>
+
+                <div class="forum-grid">
+                    <!-- Cột trái: Danh sách bài viết -->
+                    <div class="forum-posts" id="landing-qna-list">
+                        <!-- Loading state -->
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-danger"></div>
+                        </div>
+                        <!-- Bạn có thể copy thêm nhiều post-card ở đây -->
+                    </div>
+
+                    <!-- Cột phải: Thông tin giới thiệu -->
+                    <aside class="forum-sidebar">
+                        <div class="glass-card mb-4 p-4 rounded-4 shadow-sm"
+                            style="border-left: 4px solid #f59e0b; background: linear-gradient(to right, rgba(245,158,11,0.05), transparent);">
+                            <h3>Về EduTask Forum</h3>
+                            <p>Đây là không gian công cộng nơi mọi sinh viên có thể tìm kiếm lời giải cho các vấn đề học
+                                thuật. Mọi thảo luận đều được giám sát bởi đội ngũ Giảng viên tâm huyết.</p>
+
+                            <ul class="feature-list">
+                                <li><i class="fas fa-check-circle"></i> Hỏi đáp môn học 24/7</li>
+                                <li><i class="fas fa-check-circle"></i> Giảng viên trực tiếp trả lời</li>
+                                <li><i class="fas fa-check-circle"></i> Lưu trữ tài liệu ôn tập</li>
+                            </ul>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </section>
+    </main>
+
+</body>
+
+</html>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        const data = await API.get('/qna/questions');
-        const list = document.getElementById('landing-qna-list');
-        
-        if (data && data.questions && data.questions.length > 0) {
-            list.innerHTML = data.questions.slice(0, 5).map(q => `
-                <div class="qna-forum-item" onclick="location.href='/qna'">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <h5 class="fw-bold mb-0 text-primary-light">${q.title}</h5>
-                        <span class="badge ${q.is_resolved ? 'bg-success' : 'bg-warning'} bg-opacity-25" style="color:${q.is_resolved ? '#55efc4' : '#ffeaa7'}">
-                            ${q.is_resolved ? 'Đã giải quyết' : 'Đang thảo luận'}
-                        </span>
-                    </div>
-                    <p class="text-secondary text-truncate-2 mb-3" style="font-size:0.9rem; mask-image: linear-gradient(to bottom, black 50%, transparent 100%); line-height:1.5;">${q.content}</p>
-                    <div class="d-flex align-items-center justify-content-between text-muted" style="font-size:0.8rem;">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-user-circle me-2"></i> ${q.asker_name}
-                            <span class="mx-2">•</span>
-                            <i class="fas fa-clock me-2"></i> ${timeAgo(q.created_at)}
-                            ${q.course_name ? `<span class="mx-2">•</span><i class="fas fa-book me-2"></i> ${q.course_name}` : ''}
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const data = await API.get('/qna/questions');
+            const list = document.getElementById('landing-qna-list');
+
+            if (data && data.questions && data.questions.length > 0) {
+                list.innerHTML = data.questions.slice(0, 5).map(q => `
+                <div class="glass-card mb-4 p-4 rounded-4 shadow-sm" style="border-left: 4px solid #f59e0b; background: linear-gradient(to right, rgba(245,158,11,0.05), transparent);" onclick="location.href='/qna'">
+                    <div class="post-top">
+                        <div class="post-title-area">
+                            <h3>${q.title}</h3>
+                            <p class="post-snippet">${q.content}</p>
                         </div>
-                        <div>
-                            <i class="fas fa-comment ms-3 me-1"></i> ${q.answers_count || 0} phản hồi
+                        <span class="badge yellow">Đang thảo luận</span>
+                    </div>
+                    
+                    <div class="post-meta">
+                        <div class="meta-left">
+                            <span><i class="fas fa-user-circle"></i> ${q.asker_name}</span>
+                            <span class="dot-separator">•</span>
+                            <span><i class="far fa-clock"></i> ${timeAgo(q.created_at)}</span>
+                            <span class="dot-separator">•</span>
+                            <span><i class="fas fa-folder"></i> ${q.course_name}</span>
+                        </div>
+                        <div class="meta-right">
+                            <span><i class="fas fa-comment-alt"></i> 3 phản hồi</span>
                         </div>
                     </div>
                 </div>
             `).join('');
-        } else {
-            list.innerHTML = `
+            } else {
+                list.innerHTML = `
                 <div class="empty-state py-5 glass-card text-center">
                     <i class="fas fa-comments text-muted mb-3" style="font-size:3rem; opacity:0.3"></i>
                     <p class="text-muted">Chưa có thảo luận nào trên diễn đàn.</p>
                 </div>
             `;
+            }
+        } catch (e) {
+            console.error('Landing page load error:', e);
         }
-    } catch (e) {
-        console.error('Landing page load error:', e);
-    }
-});
+    });
 </script>
 {% endblock %}

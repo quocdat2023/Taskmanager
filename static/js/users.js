@@ -54,6 +54,9 @@ const UserManage = {
                         <div>
                             <div class="fw-bold">${user.full_name}</div>
                             <div class="text-muted" style="font-size:0.75rem;">@${user.username} | ${user.email}</div>
+                            <div style="font-size:0.8rem;">
+                                ${user.last_login ? `<span class="pulse-dot"></span> <span class="text-success">${timeAgo(user.last_login)}</span>` : '<span class="text-danger">Chưa đăng nhập</span>'}
+                            </div>
                         </div>
                     </div>
                 </td>
@@ -185,6 +188,7 @@ const UserManage = {
         document.getElementById('userModalLabel').textContent = 'Thêm người dùng mới';
         document.getElementById('manage-username').disabled = false;
         document.getElementById('manage-reminder-pref').value = '5';
+        document.getElementById('manage-last-login').value = 'Chưa đăng nhập';
         this.onRoleChange();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('userModal')).show();
     },
@@ -208,6 +212,7 @@ const UserManage = {
         document.getElementById('manage-student-id').value = user.student_id || '';
         document.getElementById('manage-reminder-pref').value = user.reminder_preference || '5';
         document.getElementById('manage-password').value = '';
+        document.getElementById('manage-last-login').value = user.last_login ? timeAgo(user.last_login) : 'Chưa đăng nhập';
 
         this.onRoleChange();
         bootstrap.Modal.getOrCreateInstance(document.getElementById('userModal')).show();

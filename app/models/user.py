@@ -19,6 +19,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     is_approved = db.Column(db.Boolean, default=False)
     reminder_preference = db.Column(db.String(100), default='5') # Comma-separated minutes
+    last_login = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -59,6 +60,7 @@ class User(db.Model):
             'is_active': self.is_active,
             'is_approved': self.is_approved,
             'reminder_preference': self.reminder_preference,
+            'last_login': self.last_login.isoformat() if self.last_login else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 

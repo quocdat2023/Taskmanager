@@ -10,37 +10,42 @@
 
         <!-- ===================== PERSONAL SETTINGS ===================== -->
         <div class="glass-card fade-in mb-4">
-            <h5 class="fw-bold mb-4"><i class="fas fa-user-cog me-2 text-primary"></i>Cài đặt tài khoản</h5>
+            <h5 class="fw-bold mb-4"><i class="fas fa-user-cog me-2 text-danger"></i>Cài đặt tài khoản</h5>
 
             <form id="settingsForm" onsubmit="updateSettings(event)">
                 <div class="mb-4">
-                    <label class="form-label-custom text-primary d-block mb-2">
+                    <label class="form-label-custom text-danger d-block mb-2">
                         <i class="fas fa-bell me-2"></i>Mốc nhắc hẹn mặc định
                     </label>
                     <p class="text-white small mb-3">
                         Hệ thống sẽ tự động chọn các mốc này mỗi khi bạn tạo lịch mới.
                     </p>
-                    
+
                     <div class="d-flex flex-wrap gap-3 mt-2" id="pref-reminder-options">
                         {% set current_prefs = session.get('reminder_preference', '5').split(',') %}
                         <label class="reminder-chip">
-                            <input type="checkbox" value="5" class="pref-reminder-check d-none" {% if '5' in current_prefs %}checked{% endif %}>
+                            <input type="checkbox" value="5" class="pref-reminder-check d-none" {% if '5' in
+                                current_prefs %}checked{% endif %}>
                             <span class="chip-label">5 Phút</span>
                         </label>
                         <label class="reminder-chip">
-                            <input type="checkbox" value="15" class="pref-reminder-check d-none" {% if '15' in current_prefs %}checked{% endif %}>
+                            <input type="checkbox" value="15" class="pref-reminder-check d-none" {% if '15' in
+                                current_prefs %}checked{% endif %}>
                             <span class="chip-label">15 Phút</span>
                         </label>
                         <label class="reminder-chip">
-                            <input type="checkbox" value="60" class="pref-reminder-check d-none" {% if '60' in current_prefs %}checked{% endif %}>
+                            <input type="checkbox" value="60" class="pref-reminder-check d-none" {% if '60' in
+                                current_prefs %}checked{% endif %}>
                             <span class="chip-label">1 Giờ</span>
                         </label>
                         <label class="reminder-chip">
-                            <input type="checkbox" value="1440" class="pref-reminder-check d-none" {% if '1440' in current_prefs %}checked{% endif %}>
+                            <input type="checkbox" value="1440" class="pref-reminder-check d-none" {% if '1440' in
+                                current_prefs %}checked{% endif %}>
                             <span class="chip-label">1 Ngày</span>
                         </label>
                         <label class="reminder-chip">
-                            <input type="checkbox" value="10080" class="pref-reminder-check d-none" {% if '10080' in current_prefs %}checked{% endif %}>
+                            <input type="checkbox" value="10080" class="pref-reminder-check d-none" {% if '10080' in
+                                current_prefs %}checked{% endif %}>
                             <span class="chip-label">1 Tuần</span>
                         </label>
                     </div>
@@ -98,7 +103,8 @@
                         <div class="text-secondary small">Năm học đang hoạt động trên toàn hệ thống</div>
                     </div>
                     <div class="ms-auto">
-                        <span class="badge" style="background:rgba(245,158,11,0.25); color:#f59e0b; padding:0.4em 0.9em; border-radius:20px;">
+                        <span class="badge"
+                            style="background:rgba(245,158,11,0.25); color:#f59e0b; padding:0.4em 0.9em; border-radius:20px;">
                             <i class="fas fa-circle text-warning me-1" style="font-size:0.5rem;"></i> Đang hoạt động
                         </span>
                     </div>
@@ -120,7 +126,8 @@
                     <tbody id="academic-year-table">
                         <tr>
                             <td colspan="5" class="text-center py-4">
-                                <div class="spinner-border text-warning" role="status" style="width:1.5rem;height:1.5rem;"></div>
+                                <div class="spinner-border text-warning" role="status"
+                                    style="width:1.5rem;height:1.5rem;"></div>
                                 <div class="mt-2 text-muted small">Đang tải...</div>
                             </td>
                         </tr>
@@ -139,8 +146,9 @@
                 {{ session.get('full_name', '?')[:2] | upper }}
             </div>
             <h5 class="fw-bold mb-1">{{ session.get('full_name') }}</h5>
-            <div class="badge bg-primary mb-3">{{ session.get('role') | upper }}</div>
-            <p class="text-white small">Tài khoản: @{{ session.get('username') }}</p>
+            <div class="badge bg-danger mb-3">{{ session.get('role') | upper }}</div>
+            <p class="text-muted small">Tài khoản: @{{ session.get('username') }}</p>
+
         </div>
 
         {% if session.get('role') == 'admin' %}
@@ -152,8 +160,9 @@
         </div>
         {% endif %}
 
-        <div class="glass-card border-info">
-            <h6 class="fw-bold text-info"><i class="fas fa-info-circle me-2"></i>Hướng dẫn</h6>
+        <div class="align-items-center gap-3 p-3 rounded-3"
+            style="background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.15)); border: 1px solid rgba(245,158,11,0.3);">
+            <h6 class="fw-bold text-danger"><i class="fas fa-info-circle me-2"></i>Hướng dẫn</h6>
             <p class="text-secondary small mb-0">
                 Lưu ý: Các thay đổi về mốc nhắc hẹn sẽ chỉ áp dụng cho <strong>các lịch tạo mới</strong>.
                 Các lịch cũ đã tạo sẽ giữ nguyên cấu hình nhắc hẹn ban đầu của chúng.
@@ -186,13 +195,13 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label-custom">Năm bắt đầu <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control-custom" id="ay-start-year"
-                                placeholder="VD: 2025" min="2000" max="2100" required>
+                            <input type="number" class="form-control-custom" id="ay-start-year" placeholder="VD: 2025"
+                                min="2000" max="2100" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label-custom">Năm kết thúc <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control-custom" id="ay-end-year"
-                                placeholder="VD: 2026" min="2001" max="2101" readonly
+                            <input type="number" class="form-control-custom" id="ay-end-year" placeholder="VD: 2026"
+                                min="2001" max="2101" readonly
                                 style="background: rgba(255,255,255,0.05); cursor: not-allowed;">
                         </div>
                         <div class="col-md-12">
@@ -237,7 +246,7 @@
     // ===================== PERSONAL SETTINGS =====================
     async function updateSettings(e) {
         e.preventDefault();
-        
+
         const selectedReminders = [];
         document.querySelectorAll('.pref-reminder-check:checked').forEach(cb => {
             selectedReminders.push(cb.value);
@@ -318,12 +327,12 @@
                     </td>
                     <td class="text-secondary small">${y.description || '—'}</td>
                     <td>
-                        ${y.is_active 
-                            ? `<span class="badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:20px;padding:0.35em 0.9em;">
+                        ${y.is_active
+                    ? `<span class="badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:20px;padding:0.35em 0.9em;">
                                 <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Đang hoạt động</span>`
-                            : `<span class="badge" style="background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:20px;padding:0.35em 0.9em;">
+                    : `<span class="badge" style="background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:20px;padding:0.35em 0.9em;">
                                 Không hoạt động</span>`
-                        }
+                }
                     </td>
                     <td class="text-secondary small">${y.created_at ? new Date(y.created_at).toLocaleDateString('vi-VN') : '—'}</td>
                     <td>

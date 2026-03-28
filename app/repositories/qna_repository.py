@@ -30,15 +30,24 @@ class QnARepository(BaseRepository):
         db.session.commit()
         return question
 
-    def create_answer(self, content, question_id, answered_by):
+    def create_answer(self, content, question_id, answered_by, parent_id=None):
         answer = Answer(
             content=content,
             question_id=question_id,
-            answered_by=answered_by
+            answered_by=answered_by,
+            parent_id=parent_id
         )
         db.session.add(answer)
         db.session.commit()
         return answer
+
+    def delete_answer(self, answer_id):
+        answer = Answer.query.get(answer_id)
+        if answer:
+            db.session.delete(answer)
+            db.session.commit()
+            return True
+        return False
 
     def mark_resolved(self, question_id):
         question = self.get_by_id(question_id)

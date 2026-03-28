@@ -248,6 +248,11 @@ const Realtime = {
             // Broadcast for Kanban board and task list sync across all users
             window.dispatchEvent(new CustomEvent('task-list-realtime-update', { detail: data }));
         });
+
+        this.socket.on('qna_update', (data) => {
+            console.log('[Socket] qna_update received:', data);
+            window.dispatchEvent(new CustomEvent('qna-realtime-update', { detail: data }));
+        });
     },
 
     start() {

@@ -7,6 +7,17 @@
 
 
 {% block content %}
+<style>
+    .pulse-dot {
+        width: 8px;
+        height: 8px;
+        background-color: var(--accent-green, #2ecc71);
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+        animation: pulse-green 2s infinite;
+    }
+</style>
 <div class="glass-card mb-4" style="display:flex; justify-content:space-between; align-items:center;">
     <div>
         <h5 class="fw-bold mb-0">Danh sách tài khoản</h5>
@@ -89,6 +100,10 @@
                             <label class="form-label-custom">Mật khẩu (Để trống nếu không đổi)</label>
                             <input type="password" class="form-control-custom" id="manage-password"
                                 placeholder="Mặc định: 123456">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Lần đăng nhập cuối</label>
+                            <input type="text" class="form-control-custom" id="manage-last-login" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label-custom">Số điện thoại</label>

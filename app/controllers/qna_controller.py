@@ -53,6 +53,7 @@ def create_answer():
         content=data['content'],
         question_id=data['question_id'],
         answered_by=user_id,
+        parent_id=data.get('parent_id')
     )
 
     return jsonify({'message': 'Answer created', 'answer': answer.to_dict()}), 201
@@ -74,3 +75,26 @@ def delete_question(question_id):
     if not result:
         return jsonify({'error': 'Question not found'}), 404
     return jsonify({'message': 'Question deleted'}), 200
+    
+
+@qna_bp.route('/answers/<int:answer_id>', methods=['DELETE'])
+@jwt_required()
+def delete_answer(answer_id):
+    # Optional: check if user is admin or the owner of the answer
+    user_id = get_jwt_identity()
+    user_role = sessionStorage.get('role') if hasattr(request, 'session') else None # Session check might be different
+    # Better: get user from DB to check role
+    from app.services.user_service import UserService
+    user = UserService().get_user(user_id)
+    answer = qna_service.get_answer(answer_id)
+    
+    if not answer:
+        return jsonify({'error': 'Answer not found'}), 404
+        
+    if user.role != 'admin' and answer.answered_by != user_id:
+        return jsonify({'error': 'Permission denied'}), 403
+        
+    result = qna_service.delete_answer(answer_id)
+    if not result:
+        return jsonify({'error': 'Answer not found'}), 404
+    return jsonify({'message': 'Answer deleted'}), 200

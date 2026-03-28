@@ -1,5 +1,7 @@
 from app.repositories.user_repository import UserRepository
 from flask_jwt_extended import create_access_token
+from datetime import datetime, timedelta
+from app.extensions import db
 
 
 class UserService:
@@ -36,6 +38,10 @@ class UserService:
 
         if not user.is_approved:
             return None, None, 'Tài khoản đang chờ quản trị viên phê duyệt'
+
+        # Update last login (GMT+7)
+        user.last_login = datetime.utcnow() + timedelta(hours=7)
+        db.session.commit()
 
         token = create_access_token(
             identity=user.id,

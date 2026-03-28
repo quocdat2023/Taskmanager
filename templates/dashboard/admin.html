@@ -5,34 +5,6 @@
 {% block header_subtitle %}Tổng quan cho Quản trị viên{% endblock %}
 
 {% block content %}
-<style>
-    .pulse-dot {
-        width: 8px;
-        height: 8px;
-        background-color: var(--accent-green, #2ecc71);
-        border-radius: 50%;
-        display: inline-block;
-        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
-        animation: pulse-green 2s infinite;
-    }
-
-    @keyframes pulse-green {
-        0% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
-        }
-
-        70% {
-            transform: scale(1);
-            box-shadow: 0 0 0 10px rgba(46, 204, 113, 0);
-        }
-
-        100% {
-            transform: scale(0.95);
-            box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
-        }
-    }
-</style>
 <div class="row g-4 mb-4">
     <!-- Stat Row 1: Users & System -->
     <div class="col-md-2" style="width: 20%;">
@@ -42,7 +14,7 @@
                     dùng</span>
                 <i class="fas fa-users" style="font-size:1.1rem; color:var(--primary);"></i>
             </div>
-            <div class="stat-value" id="stats-users" style="font-size: 1.5rem;">0</div>
+            <div class="stat-value" style="color: var(--primary);" id="stats-users" style="font-size: 1.5rem;">0</div>
         </div>
     </div>
     <div class="col-md-2" style="width: 20%;">
@@ -52,7 +24,8 @@
                     viên</span>
                 <i class="fas fa-chalkboard-teacher" style="font-size:1.1rem; color:var(--accent-cyan);"></i>
             </div>
-            <div class="stat-value text-info" id="stats-teachers" style="font-size: 1.5rem;">0</div>
+            <div class="stat-value" style="color: var(--accent-cyan);" id="stats-teachers" style="font-size: 1.5rem;">0
+            </div>
         </div>
     </div>
     <div class="col-md-2" style="width: 20%;">
@@ -62,7 +35,8 @@
                     viên</span>
                 <i class="fas fa-user-graduate" style="font-size:1.1rem; color:var(--accent-pink);"></i>
             </div>
-            <div class="stat-value text-danger" id="stats-students" style="font-size: 1.5rem;">0</div>
+            <div class="stat-value" style="color: var(--accent-pink);" id="stats-students" style="font-size: 1.5rem;">0
+            </div>
         </div>
     </div>
     <div class="col-md-2" style="width: 20%;">
@@ -76,14 +50,13 @@
         </div>
     </div>
     <div class="col-md-2" style="width: 20%;">
-        <div class="stat-card green" style="background: rgba(46, 204, 113, 0.1);">
+        <div class="stat-card blue">
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="stat-label text-uppercase"
-                    style="letter-spacing:1px; font-size: 0.7rem; color: var(--accent-green);">Tàu khoản chờ
+                <span class="stat-label text-uppercase" style="letter-spacing:1px; font-size: 0.7rem;">Tài khoản chờ
                     duyệt</span>
-                <i class="fas fa-user-clock" style="font-size:1.1rem; color:var(--accent-green);"></i>
+                <i class="fas fa-user-clock" style="font-size:1.1rem; color:var(--accent-blue);"></i>
             </div>
-            <div class="stat-value" id="stats-pending-users" style="font-size: 1.5rem; color: var(--accent-green);">0
+            <div class="stat-value" id="stats-pending-users" style="font-size: 1.5rem; color: var(--accent-blue);">0
             </div>
         </div>
     </div>
