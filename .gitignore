@@ -1,0 +1,10 @@
+﻿# Ignore databases & large files
+*.db
+*.sqlite
+*.sqlite3
+instance/
+backups/
+*.zip
+*.bak
+.DS_Store
+Thumbs.db
