@@ -25,7 +25,7 @@
                     <th>Kết thúc</th>
                     <th>Mô tả</th>
                     <th>Trạng thái</th>
-                    <th class="text-end">Thao tác</th>
+                    <th class="text-center">Thao tác</th>
                 </tr>
             </thead>
             <tbody id="years-table-body">
@@ -68,7 +68,7 @@
                         <div class="col-md-12">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" id="manage-is-active">
-                                <label class="form-check-label text-white" for="manage-is-active">Đặt làm năm học hiện
+                                <label class="form-check-label text-muted" for="manage-is-active">Đặt làm năm học hiện
                                     tại</label>
                             </div>
                         </div>
@@ -93,6 +93,17 @@
         init() {
             this.modal = new bootstrap.Modal(document.getElementById('yearModal'));
             this.load();
+
+            // Tự động điền năm kết thúc = năm bắt đầu + 1
+            document.getElementById('manage-start-year').addEventListener('input', function () {
+                const startVal = parseInt(this.value);
+                const endInput = document.getElementById('manage-end-year');
+                if (!isNaN(startVal) && startVal > 0) {
+                    endInput.value = startVal + 1;
+                } else {
+                    endInput.value = '';
+                }
+            });
         },
 
         async load() {
@@ -123,26 +134,29 @@
                     <td><small class="text-muted">${y.description || '—'}</small></td>
                     <td>
                         ${y.is_active
-                    ? '<span class="badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:20px;padding:0.35em 0.9em;"><i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Đang hoạt động</span>'
-                    : '<span class="badge" style="background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:20px;padding:0.35em 0.9em;">Không hoạt động</span > '}
-                    </td >
-        <td class="text-end">
-            <div style="display: flex; align-items: center; gap: 6px;">
-                ${!y.is_active ? `
+                    ? `<span class="badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:20px;padding:0.35em 0.9em;">
+                                <i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Đang hoạt động</span>`
+                    : `<span class="badge" style="background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:20px;padding:0.35em 0.9em;">
+                                Không hoạt động</span>`
+                }
+                    </td>
+                    <td class="text-end">
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            ${!y.is_active ? `
                                 <button style="border: none !important; background-color: rgba(46, 204, 113, 0.12) !important; color: #2ECC71 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Đặt làm hiện tại" onclick="AcademicYears.setActive(${y.id})">
                                     <i class="fas fa-check"></i>
                                 </button>
                             ` : ''}
-                <button style="border: none !important; background-color: rgba(255, 159, 67, 0.15) !important; color: #FF9F43 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Sửa" onclick="AcademicYears.showEditModal(${y.id})">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button style="border: none !important; background-color: rgb(255, 236, 236) !important; color: rgb(237, 42, 38) !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Xóa" onclick="AcademicYears.delete(${y.id}, '${y.name}')">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
-            </div>
-        </td>
-                </tr >
-        `).join('');
+                            <button style="border: none !important; background-color: rgba(255, 159, 67, 0.15) !important; color: #FF9F43 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Sửa" onclick="AcademicYears.showEditModal(${y.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button style="border: none !important; background-color: rgb(255, 236, 236) !important; color: rgb(237, 42, 38) !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Xóa" onclick="AcademicYears.delete(${y.id}, '${y.name}')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
         },
 
         showCreateModal() {
@@ -190,7 +204,7 @@
                 btn.disabled = true;
 
                 if (id) {
-                    await API.put(`/ academic - years / ${id} `, data);
+                    await API.put(`/academic-years/${id}`, data);
                     Toast.success('Đã cập nhật năm học');
                 } else {
                     await API.post('/academic-years', data);
@@ -210,7 +224,7 @@
         async setActive(id) {
             if (!confirm('Đặt năm học này làm năm học hiện tại cho toàn hệ thống?')) return;
             try {
-                await API.put(`/ academic - years / ${id}/set-active`);
+                await API.put(`/academic-years/${id}/set-active`);
                 Toast.success('Đã thay đổi năm học hiện tại');
                 this.load();
             } catch (err) {
