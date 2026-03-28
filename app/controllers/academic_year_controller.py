@@ -113,7 +113,13 @@ def delete_academic_year(year_id):
 
     if year.is_active:
         return jsonify({'error': 'Không thể xóa năm học đang hoạt động. Hãy chọn năm học khác trước.'}), 400
-    
+
+    # Kiểm tra xem có Task nào đang sử dụng năm học này không
+    from app.models.task import Task
+    related_task = Task.query.filter_by(academic_year=year.name).first()
+    if related_task:
+        return jsonify({'error': f'Không thể xóa năm học {year.name} vì đang có các công việc (Task) liên kết với năm học này.'}), 400
+
     # Save name before deleting for response message
     year_name = year.name
     

@@ -98,6 +98,12 @@ def task_requests_page():
     return render_template('tasks/requests.html')
 
 
+@pages.route('/admin/academic-years')
+@admin_required_page
+def academic_years_page():
+    return render_template('admin/academic_years.html')
+
+
 @pages.route('/chat')
 @login_required_page
 def chat_page():

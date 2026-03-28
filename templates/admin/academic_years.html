@@ -1,0 +1,237 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Quản lý Năm học{% endblock %}
+{% block header_title %}Quản lý Năm học{% endblock %}
+{% block header_subtitle %}Tạo và quản lý năm học cho toàn hệ thống{% endblock %}
+
+{% block content %}
+<div class="glass-card mb-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h5 class="fw-bold mb-0">Danh sách Năm học</h5>
+        <div class="text-muted" style="font-size:0.85rem;">Thiết lập các năm học và chọn năm học hiện tại</div>
+    </div>
+    <button class="btn-primary-custom" onclick="AcademicYears.showCreateModal()">
+        <i class="fas fa-plus"></i> Thêm Năm học
+    </button>
+</div>
+
+<div class="glass-card fade-in">
+    <div class="table-responsive">
+        <table class="table table-custom">
+            <thead>
+                <tr>
+                    <th>Tên Năm học</th>
+                    <th>Bắt đầu</th>
+                    <th>Kết thúc</th>
+                    <th>Mô tả</th>
+                    <th>Trạng thái</th>
+                    <th class="text-end">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="years-table-body">
+                <tr>
+                    <td colspan="6" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Academic Year Modal -->
+<div class="modal fade" id="yearModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="yearModalLabel">Thêm năm học mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="yearForm" onsubmit="AcademicYears.submitForm(event)">
+                <div class="modal-body">
+                    <input type="hidden" id="manage-year-id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Năm bắt đầu <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control-custom" id="manage-start-year" required
+                                placeholder="VD: 2024">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-custom">Năm kết thúc <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control-custom" id="manage-end-year" required
+                                placeholder="VD: 2025">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label-custom">Mô tả</label>
+                            <textarea class="form-control-custom" id="manage-description" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="manage-is-active">
+                                <label class="form-check-label text-white" for="manage-is-active">Đặt làm năm học hiện
+                                    tại</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-primary-custom" id="btn-save-year">Lưu thông tin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const AcademicYears = {
+        list: [],
+        modal: null,
+
+        init() {
+            this.modal = new bootstrap.Modal(document.getElementById('yearModal'));
+            this.load();
+        },
+
+        async load() {
+            try {
+                const response = await API.get('/academic-years');
+                if (response && response.academic_years) {
+                    this.list = response.academic_years;
+                    this.render();
+                }
+            } catch (e) {
+                Toast.error('Lỗi khi tải danh sách năm học');
+                console.error(e);
+            }
+        },
+
+        render() {
+            const tbody = document.getElementById('years-table-body');
+            if (this.list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Chưa có năm học nào</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = this.list.map(y => `
+                <tr>
+                    <td><span class="fw-bold text-muted">${y.name}</span></td>
+                    <td>${y.start_year}</td>
+                    <td>${y.end_year}</td>
+                    <td><small class="text-muted">${y.description || '—'}</small></td>
+                    <td>
+                        ${y.is_active
+                    ? '<span class="badge" style="background:rgba(245,158,11,0.2);color:#f59e0b;border-radius:20px;padding:0.35em 0.9em;"><i class="fas fa-circle me-1" style="font-size:0.5rem;"></i>Đang hoạt động</span>'
+                    : '<span class="badge" style="background:rgba(107,114,128,0.2);color:#9ca3af;border-radius:20px;padding:0.35em 0.9em;">Không hoạt động</span > '}
+                    </td >
+        <td class="text-end">
+            <div style="display: flex; align-items: center; gap: 6px;">
+                ${!y.is_active ? `
+                                <button style="border: none !important; background-color: rgba(46, 204, 113, 0.12) !important; color: #2ECC71 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Đặt làm hiện tại" onclick="AcademicYears.setActive(${y.id})">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            ` : ''}
+                <button style="border: none !important; background-color: rgba(255, 159, 67, 0.15) !important; color: #FF9F43 !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Sửa" onclick="AcademicYears.showEditModal(${y.id})">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button style="border: none !important; background-color: rgb(255, 236, 236) !important; color: rgb(237, 42, 38) !important; width: 28px !important; height: 28px !important; border-radius: 6px !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; padding: 0px !important;" title="Xóa" onclick="AcademicYears.delete(${y.id}, '${y.name}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </td>
+                </tr >
+        `).join('');
+        },
+
+        showCreateModal() {
+            document.getElementById('yearModalLabel').textContent = 'Thêm năm học mới';
+            document.getElementById('manage-year-id').value = '';
+            document.getElementById('yearForm').reset();
+            document.getElementById('manage-start-year').disabled = false;
+            document.getElementById('manage-end-year').disabled = false;
+            this.modal.show();
+        },
+
+        showEditModal(id) {
+            const y = this.list.find(item => item.id === id);
+            if (!y) return;
+
+            document.getElementById('yearModalLabel').textContent = 'Chỉnh sửa năm học';
+            document.getElementById('manage-year-id').value = y.id;
+            document.getElementById('manage-start-year').value = y.start_year;
+            document.getElementById('manage-end-year').value = y.end_year;
+            document.getElementById('manage-description').value = y.description || '';
+            document.getElementById('manage-is-active').checked = y.is_active;
+
+            // Không cho sửa năm bắt đầu/kết thúc để tránh sai tên
+            document.getElementById('manage-start-year').disabled = true;
+            document.getElementById('manage-end-year').disabled = true;
+
+            this.modal.show();
+        },
+
+        async submitForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('manage-year-id').value;
+            const data = {
+                start_year: parseInt(document.getElementById('manage-start-year').value),
+                end_year: parseInt(document.getElementById('manage-end-year').value),
+                description: document.getElementById('manage-description').value,
+                is_active: document.getElementById('manage-is-active').checked
+            };
+
+            const btn = document.getElementById('btn-save-year');
+            const originalText = btn.innerHTML;
+
+            try {
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+                btn.disabled = true;
+
+                if (id) {
+                    await API.put(`/ academic - years / ${id} `, data);
+                    Toast.success('Đã cập nhật năm học');
+                } else {
+                    await API.post('/academic-years', data);
+                    Toast.success('Đã tạo năm học mới');
+                }
+
+                this.modal.hide();
+                this.load();
+            } catch (err) {
+                Toast.error(err.message || 'Lỗi khi lưu thông tin');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        },
+
+        async setActive(id) {
+            if (!confirm('Đặt năm học này làm năm học hiện tại cho toàn hệ thống?')) return;
+            try {
+                await API.put(`/ academic - years / ${id}/set-active`);
+                Toast.success('Đã thay đổi năm học hiện tại');
+                this.load();
+            } catch (err) {
+                Toast.error(err.message || 'Lỗi khi thiết lập');
+            }
+        },
+
+        async delete(id, name) {
+            if (!confirm(`Bạn có chắc chắn muốn xóa năm học ${name}? Thao tác này không thể hoàn tác.`)) return;
+            try {
+                await API.delete(`/academic-years/${id}`);
+                Toast.success('Đã xóa năm học thành công');
+                this.load();
+            } catch (err) {
+                Toast.error(err.message || 'Không thể xóa năm học này');
+            }
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        AcademicYears.init();
+    });
+</script>
+{% endblock %}
