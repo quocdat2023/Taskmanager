@@ -48,6 +48,9 @@ class QnAService:
     def get_all_questions(self):
         return self.repo.get_all_questions()
 
+    def get_paginated_questions(self, page=1, per_page=10, search=None):
+        return self.repo.get_questions_paginated(page=page, per_page=per_page, search=search)
+
     def get_questions_by_user(self, user_id):
         return self.repo.get_questions_by_user(user_id)
 

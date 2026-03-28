@@ -104,6 +104,12 @@ def academic_years_page():
     return render_template('admin/academic_years.html')
 
 
+@pages.route('/admin/qna')
+@admin_required_page
+def admin_qna_page():
+    return render_template('admin/qna_management.html')
+
+
 @pages.route('/chat')
 @login_required_page
 def chat_page():

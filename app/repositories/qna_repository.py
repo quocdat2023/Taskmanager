@@ -1,6 +1,7 @@
 from app.repositories.base_repository import BaseRepository
 from app.models.qna import Question, Answer
 from app.extensions import db
+from sqlalchemy import or_
 
 
 class QnARepository(BaseRepository):
@@ -18,6 +19,17 @@ class QnARepository(BaseRepository):
 
     def get_all_questions(self):
         return Question.query.order_by(Question.created_at.desc()).all()
+
+    def get_questions_paginated(self, page=1, per_page=10, search=None):
+        query = Question.query
+        if search:
+            query = query.filter(
+                or_(
+                    Question.title.ilike(f'%{search}%'),
+                    Question.content.ilike(f'%{search}%')
+                )
+            )
+        return query.order_by(Question.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     def create_question(self, title, content, asked_by, **kwargs):
         question = Question(

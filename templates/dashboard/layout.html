@@ -148,6 +148,13 @@
                         <span>Quản lý năm học</span>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ url_for('pages.admin_qna_page') }}"
+                        class="nav-item {% if request.path == '/admin/qna' %}active{% endif %}">
+                        <i class="fas fa-comments"></i>
+                        <span>Quản lý thảo luận</span>
+                    </a>
+                </li>
 
                 <!--
 <li>
@@ -260,6 +267,11 @@
                 class="nav-item {% if request.path == '/admin/academic-years' %}active{% endif %}">
                 <i class="fas fa-calendar-check"></i>
                 <span>Quản lý năm học</span>
+            </a>
+            <a href="{{ url_for('pages.admin_qna_page') }}"
+                class="nav-item {% if request.path == '/admin/qna' %}active{% endif %}">
+                <i class="fas fa-comments"></i>
+                <span>Quản lý thảo luận</span>
             </a>
             <!-- <a href="{{ url_for('pages.admin_tasks_page') }}"
                 class="nav-item {% if request.path == '/admin/tasks' %}active{% endif %}">

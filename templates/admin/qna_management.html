@@ -1,0 +1,268 @@
+{% extends "dashboard/layout.html" %}
+
+{% block title %}Quản lý thảo luận{% endblock %}
+{% block header_title %}Quản lý thảo luận (Q&A){% endblock %}
+{% block header_subtitle %}Điều chỉnh, xóa thảo luận và các bình luận liên quan{% endblock %}
+
+{% block content %}
+<style>
+    .qna-admin-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .qna-admin-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 30px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    .qna-user-header {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .qna-avatar {
+        width: 48px;
+        height: 48px;
+        background: #e74c3c;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+    }
+
+    .qna-user-info h6 {
+        margin: 0;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+
+    .qna-user-meta {
+        font-size: 0.8rem;
+        color: #7f8c8d;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 2px;
+    }
+
+    .qna-content {
+        font-size: 1rem;
+        color: #34495e;
+        margin-bottom: 25px;
+        padding-left: 0;
+    }
+
+    .discussion-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-top: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        margin-bottom: 20px;
+    }
+
+    .discussion-section-header h6 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
+
+    .comment-item {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .comment-avatar {
+        width: 36px;
+        height: 36px;
+        background: #e74c3c;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+        flex-shrink: 0;
+    }
+
+    .comment-body {
+        flex: 1;
+    }
+
+    .comment-author {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #2c3e50;
+        margin-bottom: 2px;
+    }
+
+    .comment-email {
+        font-size: 0.75rem;
+        color: #95a5a6;
+        margin-bottom: 6px;
+    }
+
+    .comment-text {
+        font-size: 0.9rem;
+        color: #34495e;
+        margin-bottom: 8px;
+    }
+
+    .comment-actions {
+        display: flex;
+        gap: 15px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .btn-action-link {
+        color: #7f8c8d;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    .btn-action-link:hover {
+        color: var(--primary-color);
+    }
+
+    .btn-action-delete {
+        color: #e74c3c;
+    }
+
+    .nested-comments {
+        margin-left: 20px;
+        padding-left: 20px;
+        border-left: 1px solid #eee;
+        margin-top: 10px;
+    }
+
+    .reply-badge {
+        font-size: 0.75rem;
+        color: #95a5a6;
+        font-weight: normal;
+        margin-left: 8px;
+    }
+
+    .admin-input-area {
+        background: #fff;
+        border: 1px solid #eee;
+        border-radius: 12px;
+        padding: 15px;
+        margin-top: 25px;
+        position: relative;
+    }
+
+    .admin-textarea {
+        width: 100%;
+        border: none;
+        resize: none;
+        font-size: 0.95rem;
+        outline: none;
+        min-height: 80px;
+    }
+
+    .admin-btn-submit {
+        background: #c0392b;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 8px;
+        font-weight: 700;
+        float: right;
+        margin-top: 10px;
+        transition: 0.3s;
+    }
+
+    .admin-btn-submit:hover {
+        background: #a93226;
+        transform: translateY(-2px);
+    }
+
+    .text-separator {
+        color: #ccc;
+        margin: 0 5px;
+    }
+
+    .btn-resolve {
+        background: rgba(46, 204, 113, 0.1);
+        color: #2ecc71;
+        border: none;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+</style>
+
+<div class="qna-admin-container">
+    <div class="search-bar-admin glass-card">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0">
+                <i class="fas fa-search text-muted"></i>
+            </span>
+            <input type="text" id="admin-qna-search" class="form-control form-control-custom border-start-0"
+                placeholder="Tìm kiếm nội dung thảo luận..." onkeyup="AdminQnA.handleSearch(event)">
+        </div>
+    </div>
+    <br>
+
+    <div id="admin-qna-list">
+        <!-- Questions will be loaded here -->
+        <div class="text-center py-5">
+            <div class="spinner-border text-danger" role="status"></div>
+            <p class="mt-2 text-muted">Đang tải danh sách thảo luận...</p>
+        </div>
+    </div>
+
+    <div id="load-more-container" class="d-none">
+        <button id="btn-load-more" class="btn-glass px-5" onclick="AdminQnA.loadMore()">
+            Tải thêm thảo luận
+        </button>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Xác nhận xóa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-modal-message">Bạn có chắc chắn muốn xóa không? Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn-primary-custom" id="btn-confirm-delete">Xác nhận xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin_qna.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        AdminQnA.init();
+    });
+</script>
+{% endblock %}
