@@ -1,4 +1,4 @@
-﻿# Ignore databases & large files
+﻿# Databases & large files
 *.db
 *.sqlite
 *.sqlite3
