@@ -118,9 +118,8 @@
                     <thead>
                         <tr>
                             <th>Người gửi</th>
-                            <th>Phân loại</th>
                             <th>Công việc</th>
-                            <th>Ngày gửi</th>
+                            <th>Ngày</th>
                             <th>Thao tác</th>
                         </tr>
                     </thead>
@@ -173,11 +172,113 @@
             </div>
         </div>
     </div>
+
+
+    <!-- Process Modal -->
+    <div class="modal fade" id="processModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Xử lý yêu cầu</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="request-info" class="mb-3 p-3 rounded"
+                        style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color);">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-custom">Ghi chú phản hồi (Tùy chọn)</label>
+                        <textarea id="process-note" class="form-control-custom" rows="3"
+                            placeholder="Lý do phê duyệt hoặc từ chối..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-glass" style="height: 45px; width: 120px;"
+                        data-bs-dismiss="modal">Hủy</button>
+
+                    <button type="button" class="btn-danger" id="btn-reject" style="height: 45px; width: 120px;"
+                        onclick="Requests.process('rejected')">Từ chối</button>
+
+                    <button type="button" class="btn-primary-custom" id="btn-approve"
+                        style="height: 45px; width: 120px;" onclick="Requests.process('approved')">Phê duyệt</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    const Requests = {
+        list: [],
+        currentId: null,
+
+        getTypeLabel(type) {
+            const typeMap = {
+                'assign': 'Giao việc',
+                'delete': 'Xóa việc',
+                'withdraw': 'Rút khỏi'
+            };
+            return typeMap[type] || type;
+        },
+
+        async load() {
+            try {
+                const reqsData = await API.get('/tasks/requests');
+                if (reqsData && reqsData.requests) {
+                    this.list = reqsData.requests;
+                    renderPendingRequests(reqsData.requests.slice(0, 5));
+                }
+            } catch (e) {
+                console.error('Lỗi khi tải danh sách yêu cầu', e);
+            }
+        },
+
+        showProcess(id) {
+            const r = this.list.find(item => item.id === id);
+            if (!r) return;
+            this.currentId = id;
+            document.getElementById('process-note').value = '';
+            document.getElementById('request-info').innerHTML = `
+            <div style="font-size:0.85rem;">
+                <p class="mb-1"><strong>Loại:</strong> ${this.getTypeLabel(r.request_type)}</p>
+                <p class="mb-1"><strong>Người yêu cầu:</strong> ${r.requester_name}</p>
+                <p class="mb-1"><strong>Công việc:</strong> ${r.task_title}</p>
+                ${r.target_user_name ? `<p class="mb-0"><strong>Đối tượng:</strong> ${r.target_user_name}</p>` : ''}
+                ${r.note ? `<p class="mt-2 mb-0 text-muted italic">"${r.note}"</p>` : ''}
+            </div>
+        `;
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).show();
+        },
+
+        async process(status) {
+            if (!this.currentId) return;
+            const note = document.getElementById('process-note').value;
+            const btnApprove = document.getElementById('btn-approve');
+            const btnReject = document.getElementById('btn-reject');
+            const btn = status === 'approved' ? btnApprove : btnReject;
+            const originalText = btn.innerHTML;
+
+            try {
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+                btn.disabled = true;
+
+                await API.post(`/tasks/requests/${this.currentId}/process`, { status, note });
+                Toast.success('Đã xử lý yêu cầu thành công');
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).hide();
+                await this.load();
+            } catch (e) {
+                Toast.error(e.message || 'Lỗi khi xử lý yêu cầu');
+            } finally {
+                btnApprove.disabled = false;
+                btnReject.disabled = false;
+                btnApprove.innerHTML = 'Phê duyệt';
+                btnReject.innerHTML = 'Từ chối';
+            }
+        }
+    };
+
     async function refreshStats() {
         try {
             // 1. Fetch user counts
@@ -199,11 +300,8 @@
                 document.getElementById('stats-tasks-done').textContent = s.done || 0;
             }
 
-            // 3. Fetch pending requests
-            const reqsData = await API.get('/tasks/requests');
-            if (reqsData && reqsData.requests) {
-                renderPendingRequests(reqsData.requests.slice(0, 5));
-            }
+            // 3. Fetch pending requests (dùng Requests.load() để đồng bộ this.list)
+            await Requests.load();
 
             // 4. Fetch system health
             const health = await API.get('/admin/system/health');
@@ -245,28 +343,30 @@
         };
 
         list.innerHTML = requests.map(r => `
-            <tr>
-                <td>
-                    <div class="fw-bold" style="font-size:0.85rem;">${r.requester_name}</div>
-                    <div class="text-muted" style="font-size:0.7rem;">ID: ${r.requester_id}</div>
-                </td>
-                <td>${typeMap[r.request_type] || r.request_type}</td>
-                <td><div class="text-truncate" style="max-width:150px; font-size:0.85rem;" title="${r.task_title}">${r.task_title}</div></td>
-                <td style="font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString('vi-VN')}</td>
-                <td class="text-end">
-                    <a href="/tasks/requests" class="btn-primary-custom" style="font-size:0.7rem;">Xử lý</a>
-                </td>
-            </tr>
-        `).join('');
+        <tr>
+            <td>
+                <div class="fw-bold" style="font-size:0.85rem;">${r.requester_name}</div>
+                <div class="text-muted" style="font-size:0.7rem;">${r.target_user_name || '—'}</div>
+               ${typeMap[r.request_type] || r.request_type}
+            </td>
+            <td><div class="text-truncate" style="max-width:150px; font-size:0.85rem;" title="${r.task_title}">${r.task_title}</div></td>
+            <td style="font-size:0.8rem;">${new Date(r.created_at).toLocaleDateString('vi-VN')}</td>
+            <td class="text-end">
+                <button class="btn-primary-custom" onclick="Requests.showProcess(${r.id})">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
     }
 
     function updateHealthBadge(id, isOk, okText, failText) {
         const el = document.getElementById(id);
         if (!el) return;
         el.textContent = isOk ? okText : failText;
-        el.className = isOk ?
-            'badge bg-success bg-opacity-25 text-success rounded-pill px-3' :
-            'badge bg-danger bg-opacity-25 text-danger rounded-pill px-3';
+        el.className = isOk
+            ? 'badge bg-success bg-opacity-25 text-success rounded-pill px-3'
+            : 'badge bg-danger bg-opacity-25 text-danger rounded-pill px-3';
     }
 
     document.addEventListener('DOMContentLoaded', () => {

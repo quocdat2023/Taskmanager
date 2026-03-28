@@ -17,10 +17,10 @@
         <table class="table table-hover align-middle" style="color:var(--text-primary);">
             <thead>
                 <tr style="border-color:var(--border-color);">
-                    <th>Loại</th>
                     <th>Người gửi</th>
                     <th>Công việc</th>
                     <th>Đối tượng</th>
+                    <th>Loại</th>
                     <th>Thời gian</th>
                     <th class="text-end">Thao tác</th>
                 </tr>
@@ -45,92 +45,99 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="request-info" class="mb-3 p-3 rounded" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color);">
+                <div id="request-info" class="mb-3 p-3 rounded"
+                    style="background:rgba(255,255,255,0.03); border:1px solid var(--border-color);">
                 </div>
                 <div class="mb-3">
                     <label class="form-label-custom">Ghi chú phản hồi (Tùy chọn)</label>
-                    <textarea id="process-note" class="form-control-custom" rows="3" placeholder="Lý do phê duyệt hoặc từ chối..."></textarea>
+                    <textarea id="process-note" class="form-control-custom" rows="3"
+                        placeholder="Lý do phê duyệt hoặc từ chối..."></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn-danger" id="btn-reject" onclick="Requests.process('rejected')">Từ chối</button>
-                <button type="button" class="btn-primary-custom" id="btn-approve" onclick="Requests.process('approved')">Phê duyệt</button>
+                <button type="button" class="btn-glass" style="height: 45px; width: 120px;"
+                    data-bs-dismiss="modal">Hủy</button>
+
+                <button type="button" class="btn-danger" id="btn-reject" style="height: 45px; width: 120px;"
+                    onclick="Requests.process('rejected')">Từ chối</button>
+
+                <button type="button" class="btn-primary-custom" id="btn-approve" style="height: 45px; width: 120px;"
+                    onclick="Requests.process('approved')">Phê duyệt</button>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const Requests = {
-    list: [],
-    currentId: null,
+    const Requests = {
+        list: [],
+        currentId: null,
 
-    async init() {
-        await this.load();
-    },
+        async init() {
+            await this.load();
+        },
 
-    async load() {
-        const body = document.getElementById('requests-table-body');
-        try {
-            const data = await API.get('/tasks/requests');
-            this.list = data.requests || [];
-            this.render();
-        } catch (e) {
-            body.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Không thể tải danh sách</td></tr>';
-        }
-    },
+        async load() {
+            const body = document.getElementById('requests-table-body');
+            try {
+                const data = await API.get('/tasks/requests');
+                this.list = data.requests || [];
+                this.render();
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Không thể tải danh sách</td></tr>';
+            }
+        },
 
-    render() {
-        const body = document.getElementById('requests-table-body');
-        if (this.list.length === 0) {
-            body.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Không có yêu cầu nào đang chờ</td></tr>';
-            return;
-        }
+        render() {
+            const body = document.getElementById('requests-table-body');
+            if (this.list.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Không có yêu cầu nào đang chờ</td></tr>';
+                return;
+            }
 
-        body.innerHTML = this.list.map(r => `
+            body.innerHTML = this.list.map(r => `
             <tr style="border-color:var(--border-color);">
-                <td>
-                    <span class="badge ${this.getTypeClass(r.request_type)}">
-                        ${this.getTypeLabel(r.request_type)}
-                    </span>
-                </td>
                 <td>
                     <div class="d-flex align-items-center gap-2">
                         <div class="sidebar-user-avatar" style="width:24px;height:24px;font-size:0.6rem;margin:0;">
-                            ${(r.requester_name || '?').substring(0,2).toUpperCase()}
+                            ${(r.requester_name || '?').substring(0, 2).toUpperCase()}
                         </div>
                         <div style="font-size:0.85rem;">${r.requester_name}</div>
                     </div>
                 </td>
                 <td style="font-size:0.85rem; font-weight:500;">${r.task_title}</td>
                 <td style="font-size:0.85rem;">${r.target_user_name || '—'}</td>
+                <td>
+                    <span class="badge ${this.getTypeClass(r.request_type)}">
+                        ${this.getTypeLabel(r.request_type)}
+                    </span>
+                </td>
                 <td style="font-size:0.8rem; color:var(--text-muted);">${formatDateTime(r.created_at)}</td>
                 <td class="text-end">
-                    <button class="btn-glass btn-sm" onclick="Requests.showProcess(${r.id})">
-                        Xử lý
+                    <button class="btn-primary-custom" onclick="Requests.showProcess(${r.id})">
+                       <i class="fa-solid fa-wand-magic-sparkles"></i>
                     </button>
                 </td>
             </tr>
         `).join('');
-    },
+        },
 
-    getTypeLabel(type) {
-        const labels = { 'assign': 'Giao việc', 'delete': 'Xóa task', 'withdraw': 'Rút khỏi task', 'remove': 'Xóa thành viên' };
-        return labels[type] || type;
-    },
+        getTypeLabel(type) {
+            const labels = { 'assign': 'Giao việc', 'delete': 'Xóa task', 'withdraw': 'Rút khỏi task', 'remove': 'Xóa thành viên' };
+            return labels[type] || type;
+        },
 
-    getTypeClass(type) {
-        const classes = { 'assign': 'bg-info', 'delete': 'bg-danger', 'withdraw': 'bg-warning text-dark', 'remove': 'bg-dark text-white' };
-        return classes[type] || 'bg-secondary';
-    },
+        getTypeClass(type) {
+            const classes = { 'assign': 'bg-info', 'delete': 'bg-danger', 'withdraw': 'bg-warning text-dark', 'remove': 'bg-dark text-white' };
+            return classes[type] || 'bg-secondary';
+        },
 
-    showProcess(id) {
-        const r = this.list.find(item => item.id === id);
-        if (!r) return;
-        this.currentId = id;
-        document.getElementById('process-note').value = '';
-        document.getElementById('request-info').innerHTML = `
+        showProcess(id) {
+            const r = this.list.find(item => item.id === id);
+            if (!r) return;
+            this.currentId = id;
+            document.getElementById('process-note').value = '';
+            document.getElementById('request-info').innerHTML = `
             <div style="font-size:0.85rem;">
                 <p class="mb-1"><strong>Loại:</strong> ${this.getTypeLabel(r.request_type)}</p>
                 <p class="mb-1"><strong>Người yêu cầu:</strong> ${r.requester_name}</p>
@@ -139,37 +146,41 @@ const Requests = {
                 ${r.note ? `<p class="mt-2 mb-0 text-muted italic">"${r.note}"</p>` : ''}
             </div>
         `;
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).show();
-    },
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).show();
+        },
 
-    async process(status) {
-        if (!this.currentId) return;
-        const note = document.getElementById('process-note').value;
-        try {
-            const btn = status === 'approved' ? document.getElementById('btn-approve') : document.getElementById('btn-reject');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
-            btn.disabled = true;
+        async process(status) {
+            if (!this.currentId) return;
+            const note = document.getElementById('process-note').value;
+            try {
+                const btn = status === 'approved' ? document.getElementById('btn-approve') : document.getElementById('btn-reject');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
+                btn.disabled = true;
 
-            await API.post(`/tasks/requests/${this.currentId}/process`, { status, note });
-            Toast.success('Đã xử lý yêu cầu thành công');
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).hide();
-            await this.load();
-        } catch (e) {
-            Toast.error(e.message || 'Lỗi khi xử lý yêu cầu');
-        } finally {
-            document.getElementById('btn-approve').disabled = false;
-            document.getElementById('btn-reject').disabled = false;
-            document.getElementById('btn-approve').innerHTML = 'Phê duyệt';
-            document.getElementById('btn-reject').innerHTML = 'Từ chối';
+                await API.post(`/tasks/requests/${this.currentId}/process`, { status, note });
+                Toast.success('Đã xử lý yêu cầu thành công');
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).hide();
+                await this.load();
+            } catch (e) {
+                Toast.error(e.message || 'Lỗi khi xử lý yêu cầu');
+            } finally {
+                document.getElementById('btn-approve').disabled = false;
+                document.getElementById('btn-reject').disabled = false;
+                document.getElementById('btn-approve').innerHTML = 'Phê duyệt';
+                document.getElementById('btn-reject').innerHTML = 'Từ chối';
+            }
         }
-    }
-};
+    };
 
-document.addEventListener('DOMContentLoaded', () => Requests.init());
+    document.addEventListener('DOMContentLoaded', () => Requests.init());
 </script>
 
 <style>
-.badge { font-weight: 500; font-size: 0.75rem; padding: 0.4em 0.8em; }
+    .badge {
+        font-weight: 500;
+        font-size: 0.75rem;
+        padding: 0.4em 0.8em;
+    }
 </style>
 {% endblock %}

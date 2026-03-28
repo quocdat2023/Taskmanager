@@ -1,113 +1,712 @@
 {% extends "qna/layout.html" %}
 
 {% block title %}Hỏi đáp (Q&A){% endblock %}
+
 {% block header_title %}Diễn đàn Thảo luận{% endblock %}
+
 {% block header_subtitle %}Giải đáp thắc mắc liên quan đến môn học và bài giảng{% endblock %}
 
 {% block content %}
-<!-- Search & Header Hero -->
-<div class="glass-card mb-4 overflow-hidden border-0"
-    style="background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(234,88,12,0.15)); border: 1px solid rgba(245,158,11,0.3);">
-    <div class="row align-items-center p-4">
-        <div class="col-lg-7">
-            <h4 class="fw-bold mb-2">Xin chào, chúng tôi có thể giúp gì cho bạn?</h4>
-            <p class="text-muted small mb-4">Tìm kiếm câu trả lời từ cộng đồng hoặc đặt câu hỏi mới cho giảng viên.</p>
-            <div class="search-input-wrapper position-relative">
-                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <input type="text" class="form-control-custom ps-5 py-3 shadow-none border-0" id="qna-search"
-                    placeholder="Nhập từ khóa tìm kiếm câu hỏi..." onkeyup="QnA.handleSearch(event)">
-            </div>
-        </div>
-        <div class="col-lg-5 text-lg-end mt-4 mt-lg-0">
-            <button class="btn-primary-custom px-4 py-2" onclick="QnA.showCreateModal()">
-                <i class="fas fa-plus-circle me-2"></i> Đặt câu hỏi mới
-            </button>
-        </div>
-    </div>
-</div>
-
-<div class="row g-4">
-    <!-- Filters & Main List -->
-    <div class="col-lg-8">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-            <div class="d-flex gap-2 bg-white bg-opacity-50 p-1 rounded-pill border border-white"
-                style="backdrop-filter: blur(10px);">
-                <button class="btn btn-sm rounded-pill px-3 py-1 qna-filter active"
-                    onclick="QnA.setFilter('all', this)">Tất cả</button>
-                <!--<button class="btn btn-sm rounded-pill px-3 py-1 qna-filter"
-                    onclick="QnA.setFilter('unresolved', this)">Chưa giải quyết</button>-->
-                <button class="btn btn-sm rounded-pill px-3 py-1 qna-filter" onclick="QnA.setFilter('mine', this)">Câu
-                    hỏi của tôi</button>
-            </div>
-            <div class="text-muted small" id="qna-count">Đang tải...</div>
-        </div>
-
-        <div id="qna-list">
-            <!-- Injected via JS -->
-            <div class="text-center py-5">
-                <div class="spinner-border text-primary opacity-25" role="status"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Sidebar Widgets -->
-    <div class="col-lg-4">
-        <div class="glass-card mb-4">
-            <h6 class="fw-bold mb-3 border-bottom pb-2">Thống kê diễn đàn</h6>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-secondary small">Tổng số câu hỏi:</span>
-                <span class="fw-bold small" id="stat-total-q">0</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-secondary small">Đã giải quyết:</span>
-                <span class="text-success fw-bold small" id="stat-resolved-q">0</span>
-            </div>
-            <div class="d-flex justify-content-between">
-                <span class="text-secondary small">Tỷ lệ trả lời:</span>
-                <span class="text-primary fw-bold small" id="stat-ratio-q">0%</span>
-            </div>
-        </div>
-
-        <div class="glass-card mb-4">
-            <h6 class="fw-bold mb-3 border-bottom pb-2">Môn học phổ biến</h6>
-            <div id="popular-courses" class="d-flex flex-wrap gap-2">
-                <span
-                    class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-10 py-2 px-3 fw-normal">Đang
-                    tải...</span>
-            </div>
-        </div>
-
-        <div class="glass-card">
-            <h6 class="fw-bold mb-3 border-bottom pb-2">Hướng dẫn đặt câu hỏi</h6>
-            <ul class="list-unstyled small text-secondary mb-0">
-                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Tiêu đề ngắn gọn, súc tích</li>
-                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Nội dung mô tả rõ ràng vấn đề</li>
-                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Ghi đúng tên môn học/mã lớp</li>
-                <li><i class="fas fa-check-circle text-success me-2"></i>Đọc kỹ quy tắc ứng xử diễn đàn</li>
-            </ul>
-        </div>
-    </div>
-</div>
 
 <style>
-    .qna-filter.active {
-        background: var(--primary);
-        color: white !important;
-        box-shadow: 0 4px 10px var(--primary-glow);
+    /* ── Root overrides to match EduTask vibe ── */
+    :root {
+        --qna-red: #ff4742;
+        --qna-red-dark: #c0392b;
+        --qna-red-soft: rgba(255, 71, 66, 0.08);
+        --qna-amber: #f59e0b;
+        --qna-amber-soft: rgba(245, 158, 11, 0.1);
+        --qna-green: #10b981;
+        --qna-green-soft: rgba(16, 185, 129, 0.1);
+        --qna-blue-soft: rgba(59, 130, 246, 0.08);
+        --qna-text: #1a1a2e;
+        --qna-text-muted: #64748b;
+        --qna-border: rgba(0, 0, 0, 0.06);
+        --qna-bg: #f5f7fa;
+        --qna-white: #ffffff;
+        --qna-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+        --qna-shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.1);
+        --qna-radius: 14px;
+        --qna-radius-sm: 9px;
     }
 
-    .qna-filter:not(.active) {
-        color: var(--text-secondary);
+    body,
+    .main-content,
+    .content-area {
+        background: var(--qna-bg) !important;
+    }
+
+    /* ── Hero Search Banner ── */
+    .qna-hero-banner {
+        background: linear-gradient(135deg, #fff8f0 0%, #fff0f0 60%, #fff5eb 100%);
+        border: 1.5px solid rgba(245, 158, 11, 0.2);
+        border-radius: var(--qna-radius);
+        padding: 32px 36px;
+        margin-bottom: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .qna-hero-banner::before {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .qna-hero-banner::after {
+        content: '';
+        position: absolute;
+        bottom: -30px;
+        left: 30%;
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(circle, rgba(255, 71, 66, 0.07) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .qna-hero-left {
+        flex: 1;
+        max-width: 580px;
+        position: relative;
+        z-index: 1;
+    }
+
+    .qna-hero-left h4 {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--qna-text);
+        margin-bottom: 6px;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .qna-hero-left p {
+        font-size: 13.5px;
+        color: var(--qna-text-muted);
+        margin-bottom: 20px;
+    }
+
+    .qna-search-wrapper {
+        position: relative;
+    }
+
+    .qna-search-wrapper i {
+        position: absolute;
+        top: 50%;
+        left: 16px;
+        transform: translateY(-50%);
+        color: #aaa;
+        font-size: 14px;
+        pointer-events: none;
+    }
+
+    .qna-search-input {
+        width: 100%;
+        padding: 12px 18px 12px 44px;
+        background: #fff;
+        border: 1.5px solid rgba(245, 158, 11, 0.25);
+        border-radius: 50px;
+        font-size: 14px;
+        font-family: 'Poppins', sans-serif;
+        color: var(--qna-text);
+        outline: none;
+        transition: 0.2s;
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.08);
+    }
+
+    .qna-search-input:focus {
+        border-color: var(--qna-amber);
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+    }
+
+    .qna-search-input::placeholder {
+        color: #bbb;
+    }
+
+    .qna-hero-right {
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* ── Buttons ── */
+    .btn-qna-primary {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, var(--qna-red), var(--qna-red-dark));
+        color: #fff;
+        padding: 11px 24px;
+        border-radius: 50px;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: 0.25s;
+        text-decoration: none;
+        white-space: nowrap;
+        box-shadow: 0 4px 14px rgba(255, 71, 66, 0.3);
+    }
+
+    .btn-qna-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(255, 71, 66, 0.4);
+        color: #fff;
+    }
+
+    .btn-qna-glass {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        color: var(--qna-text-muted);
+        padding: 9px 20px;
+        border-radius: 50px;
+        border: 1.5px solid rgba(0, 0, 0, 0.12);
+        font-size: 14px;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: 0.2s;
+        text-decoration: none;
+    }
+
+    .btn-qna-glass:hover {
+        border-color: var(--qna-red);
+        color: var(--qna-red);
+        background: var(--qna-red-soft);
+    }
+
+    /* ── Layout Grid ── */
+    .qna-layout {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 24px;
+        align-items: start;
+    }
+
+    /* ── Filter Bar ── */
+    .qna-filter-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        gap: 12px;
+    }
+
+    .qna-filter-tabs {
+        display: flex;
+        gap: 6px;
+        background: #fff;
+        padding: 5px;
+        border-radius: 50px;
+        border: 1px solid var(--qna-border);
+        box-shadow: var(--qna-shadow);
+    }
+
+    .qna-filter {
+        padding: 6px 18px;
+        border-radius: 50px;
+        border: none;
+        background: transparent;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--qna-text-muted);
+        cursor: pointer;
+        transition: 0.2s;
+        font-family: 'Poppins', sans-serif;
+        white-space: nowrap;
+    }
+
+    .qna-filter.active {
+        background: linear-gradient(135deg, var(--qna-red), var(--qna-red-dark));
+        color: #fff !important;
+        box-shadow: 0 3px 10px rgba(255, 71, 66, 0.3);
+    }
+
+    .qna-filter:not(.active):hover {
+        background: var(--qna-red-soft);
+        color: var(--qna-red);
+    }
+
+    .qna-count-text {
+        font-size: 13px;
+        color: var(--qna-text-muted);
+        white-space: nowrap;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* ── Question Cards ── */
+    .qna-card {
+        background: var(--qna-white);
+        border-radius: var(--qna-radius);
+        border: 1px solid var(--qna-border);
+        padding: 22px 24px;
+        margin-bottom: 14px;
+        cursor: pointer;
+        transition: 0.25s;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .qna-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: linear-gradient(180deg, var(--qna-amber), #ea580c);
+        border-radius: 4px 0 0 4px;
+    }
+
+    .qna-card:hover {
+        box-shadow: var(--qna-shadow-hover);
+        border-color: rgba(245, 158, 11, 0.25);
+        transform: translateY(-2px);
+    }
+
+    .qna-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 14px;
+    }
+
+    .qna-card-title {
+        font-size: 15.5px;
+        font-weight: 600;
+        color: var(--qna-text);
+        margin-bottom: 6px;
+        line-height: 1.4;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .qna-card-snippet {
+        font-size: 13px;
+        color: var(--qna-text-muted);
+        line-height: 1.55;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* Status badges */
+    .qna-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 13px;
+        border-radius: 50px;
+        font-size: 11.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .qna-badge-amber {
+        background: var(--qna-amber-soft);
+        color: #b45309;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .qna-badge-green {
+        background: var(--qna-green-soft);
+        color: #065f46;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .qna-badge-blue {
+        background: var(--qna-blue-soft);
+        color: #1e40af;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .qna-badge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.7;
+    }
+
+    /* Card footer meta */
+    .qna-card-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 14px;
+        border-top: 1px solid #f1f5f9;
+        font-size: 12.5px;
+        color: var(--qna-text-muted);
+    }
+
+    .qna-meta-left,
+    .qna-meta-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .qna-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .qna-meta-item i {
+        font-size: 11px;
+        opacity: 0.6;
+    }
+
+    .qna-meta-sep {
+        color: #ddd;
+        font-size: 10px;
+    }
+
+    /* ── Sidebar Cards ── */
+    .qna-sidebar-card {
+        background: var(--qna-white);
+        border-radius: var(--qna-radius);
+        border: 1px solid var(--qna-border);
+        padding: 22px 24px;
+        margin-bottom: 18px;
+        box-shadow: var(--qna-shadow);
+    }
+
+    .qna-sidebar-card h6 {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--qna-text);
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #f1f5f9;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Stats rows */
+    .qna-stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        font-size: 13px;
+        border-bottom: 1px solid #f8f9fa;
+    }
+
+    .qna-stat-row:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .qna-stat-label {
+        color: var(--qna-text-muted);
+    }
+
+    .qna-stat-value {
+        font-weight: 700;
+        color: var(--qna-text);
+        font-size: 14px;
+    }
+
+    .qna-stat-value.green {
+        color: var(--qna-green);
+    }
+
+    .qna-stat-value.red {
+        color: var(--qna-red);
+    }
+
+    .qna-stat-value.amber {
+        color: var(--qna-amber);
+    }
+
+    /* Popular course tags */
+    .qna-course-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .qna-course-tag {
+        display: inline-block;
+        padding: 5px 13px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 50px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--qna-text-muted);
+        font-family: 'Poppins', sans-serif;
+        transition: 0.2s;
+        cursor: pointer;
+    }
+
+    .qna-course-tag:hover {
+        background: var(--qna-red-soft);
+        border-color: rgba(255, 71, 66, 0.2);
+        color: var(--qna-red);
+    }
+
+    /* Tips list */
+    .qna-tips-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .qna-tips-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 8px 0;
+        font-size: 13px;
+        color: var(--qna-text-muted);
+        border-bottom: 1px solid #f8f9fa;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .qna-tips-list li:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .qna-tips-list li i {
+        color: var(--qna-green);
+        font-size: 13px;
+        margin-top: 1px;
+        flex-shrink: 0;
+    }
+
+    /* ── Empty / Loading States ── */
+    .qna-empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: var(--qna-white);
+        border-radius: var(--qna-radius);
+        border: 1px solid var(--qna-border);
+    }
+
+    .qna-empty-state i {
+        font-size: 40px;
+        color: #ddd;
+        margin-bottom: 16px;
+        display: block;
+    }
+
+    .qna-empty-state p {
+        font-size: 14px;
+        color: var(--qna-text-muted);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* ── Modal restyling ── */
+    .modal-content {
+        border: none;
+        border-radius: var(--qna-radius);
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #fff8f0, #fff0f0);
+        border-bottom: 1px solid rgba(245, 158, 11, 0.15) !important;
+        padding: 20px 28px;
+    }
+
+    .modal-title {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--qna-text);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .modal-body {
+        padding: 28px;
+        background: #fff;
+    }
+
+    .modal-footer {
+        background: #fafafa;
+        border-top: 1px solid #f0f0f0 !important;
+        padding: 16px 28px;
+    }
+
+    .form-label-custom {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--qna-text);
+        margin-bottom: 8px;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-control-custom {
+        width: 100%;
+        padding: 11px 16px;
+        border: 1.5px solid #e9ecef;
+        border-radius: var(--qna-radius-sm);
+        font-size: 14px;
+        font-family: 'Poppins', sans-serif;
+        color: var(--qna-text);
+        background: #fff;
+        outline: none;
+        transition: 0.2s;
+        resize: vertical;
+    }
+
+    .form-control-custom:focus {
+        border-color: var(--qna-amber);
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
+    }
+
+    .form-control-custom::placeholder {
+        color: #bbb;
+        font-size: 13px;
+    }
+
+    /* Responsive */
+    @media (max-width: 992px) {
+        .qna-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .qna-hero-banner {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 24px 20px;
+        }
+
+        .qna-hero-left {
+            max-width: 100%;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .qna-card-top {
+            flex-direction: column;
+        }
+
+        .qna-meta-left {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .qna-meta-sep {
+            display: none;
+        }
+
+        .qna-filter-bar {
+            flex-direction: column;
+            align-items: flex-start;
+        }
     }
 </style>
 
-<!-- Create Question Modal -->
+<!-- ── Hero Search Banner ── -->
+<div class="qna-hero-banner">
+    <div class="qna-hero-left">
+        <h4>Xin chào, chúng tôi có thể giúp gì cho bạn? 👋</h4>
+        <p>Tìm kiếm câu trả lời từ cộng đồng hoặc đặt câu hỏi mới cho giảng viên.</p>
+        <div class="qna-search-wrapper">
+            <i class="fas fa-search"></i>
+            <input type="text" class="qna-search-input" id="qna-search" placeholder="Nhập từ khóa tìm kiếm câu hỏi..."
+                onkeyup="QnA.handleSearch(event)">
+        </div>
+    </div>
+    <div class="qna-hero-right">
+        <button class="btn-qna-primary" onclick="QnA.showCreateModal()">
+            <i class="fas fa-plus-circle"></i> Đặt câu hỏi mới
+        </button>
+    </div>
+</div>
+
+<!-- ── Main Layout ── -->
+<div class="qna-layout">
+
+    <!-- Left: Filter + List -->
+    <div>
+        <div class="qna-filter-bar">
+            <div class="qna-filter-tabs">
+                <button class="qna-filter active" onclick="QnA.setFilter('all', this)">Tất cả</button>
+                <button class="qna-filter" onclick="QnA.setFilter('mine', this)">Câu hỏi của tôi</button>
+            </div>
+            <div class="qna-count-text" id="qna-count">Đang tải...</div>
+        </div>
+
+        <div id="qna-list">
+            <div class="qna-empty-state">
+                <div class="spinner-border text-secondary opacity-25" role="status"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Sidebar -->
+    <aside>
+        <!-- Stats -->
+        <div class="qna-sidebar-card">
+            <h6><i class="fas fa-chart-bar me-2" style="color:var(--qna-amber)"></i>Thống kê diễn đàn</h6>
+            <div class="qna-stat-row">
+                <span class="qna-stat-label">Tổng số câu hỏi</span>
+                <span class="qna-stat-value" id="stat-total-q">0</span>
+            </div>
+            <div class="qna-stat-row">
+                <span class="qna-stat-label">Đã giải quyết</span>
+                <span class="qna-stat-value green" id="stat-resolved-q">0</span>
+            </div>
+            <div class="qna-stat-row">
+                <span class="qna-stat-label">Tỷ lệ trả lời</span>
+                <span class="qna-stat-value amber" id="stat-ratio-q">0%</span>
+            </div>
+        </div>
+
+        <!-- Popular Courses -->
+        <div class="qna-sidebar-card">
+            <h6><i class="fas fa-fire me-2" style="color:var(--qna-red)"></i>Môn học phổ biến</h6>
+            <div class="qna-course-tags" id="popular-courses">
+                <span class="qna-course-tag">Đang tải...</span>
+            </div>
+        </div>
+
+        <!-- Tips -->
+        <div class="qna-sidebar-card">
+            <h6><i class="fas fa-lightbulb me-2" style="color:var(--qna-amber)"></i>Hướng dẫn đặt câu hỏi</h6>
+            <ul class="qna-tips-list">
+                <li><i class="fas fa-check-circle"></i>Tiêu đề ngắn gọn, súc tích</li>
+                <li><i class="fas fa-check-circle"></i>Nội dung mô tả rõ ràng vấn đề</li>
+                <li><i class="fas fa-check-circle"></i>Ghi đúng tên môn học / mã lớp</li>
+                <li><i class="fas fa-check-circle"></i>Đọc kỹ quy tắc ứng xử diễn đàn</li>
+            </ul>
+        </div>
+    </aside>
+</div>
+
+<!-- ── Create Question Modal ── -->
 <div class="modal fade" id="questionModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header border-bottom border-secondary">
-                <h5 class="modal-title">Đặt câu hỏi mới</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title">
+                    <i class="fas fa-pen-alt me-2" style="color:var(--qna-amber)"></i>Đặt câu hỏi mới
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="questionForm" onsubmit="QnA.submitQuestion(event)">
                 <div class="modal-body">
@@ -131,15 +730,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top border-secondary">
-                    <button type="button" class="btn-glass" data-bs-dismiss="modal">Hủy</button>
-                    <button type="submit" class="btn-primary-custom"><i class="fas fa-paper-plane me-2"></i>Gửi câu
-                        hỏi</button>
+                <div class="modal-footer">
+                    <button type="button" class="btn-qna-glass" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn-qna-primary">
+                        <i class="fas fa-paper-plane"></i> Gửi câu hỏi
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
