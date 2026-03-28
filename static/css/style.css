@@ -1423,35 +1423,39 @@ textarea.form-control-custom {
 }
 
 .notification-icon.task_request {
-    background: rgba(253, 207, 121, 0.1);
-    color: var(--primary);
+    background: rgba(255, 159, 67, 0.15);
+    /* orange soft */
+    color: #FF9F43;
 }
 
-
 .notification-icon.info {
-    background: rgba(69, 184, 250, 0.1);
-    color: #74B9FF;
+    background: rgba(9, 132, 227, 0.12);
+    /* blue */
+    color: #0984E3;
 }
 
 .notification-icon.task {
-    background: rgba(252, 216, 71, 0.1);
-    color: var(--accent-orange);
+    background: rgba(46, 204, 113, 0.12);
+    /* green */
+    color: #2ECC71;
 }
 
-
 .notification-icon.schedule {
-    background: rgba(0, 206, 201, 0.1);
-    color: var(--accent-cyan);
+    background: rgba(0, 206, 201, 0.12);
+    /* cyan */
+    color: #00CEC9;
 }
 
 .notification-icon.qna {
-    background: rgba(253, 121, 168, 0.1);
-    color: var(--accent-pink);
+    background: rgba(214, 48, 49, 0.12);
+    /* red */
+    color: #D63031;
 }
 
 .notification-icon.document {
-    background: rgba(253, 203, 110, 0.1);
-    color: var(--accent-orange);
+    background: rgba(108, 92, 231, 0.12);
+    /* purple */
+    color: #6C5CE7;
 }
 
 .notification-text {
