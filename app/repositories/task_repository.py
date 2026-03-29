@@ -205,8 +205,11 @@ class TaskRepository(BaseRepository):
             query = query.filter_by(requester_id=requester_id)
         return query.first()
 
-    def get_pending_requests(self):
-        return TaskRequest.query.filter_by(status='pending').order_by(TaskRequest.created_at.desc()).all()
+    def get_pending_requests(self, page=1, per_page=20):
+        return TaskRequest.query.filter_by(status='pending').order_by(TaskRequest.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+
+    def get_processed_requests(self, page=1, per_page=20):
+        return TaskRequest.query.filter(TaskRequest.status != 'pending').order_by(TaskRequest.processed_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
 
     def update_request_status(self, request_id, status, processed_by, note=None):
         req = TaskRequest.query.get(request_id)

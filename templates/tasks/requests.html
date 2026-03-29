@@ -6,33 +6,105 @@
 
 {% block content %}
 <div class="glass-card">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5 class="fw-bold mb-0">Danh sách yêu cầu đang chờ</h5>
-        <button class="btn-glass btn-sm" onclick="Requests.load()">
-            <i class="fas fa-sync-alt me-1"></i> Làm mới
-        </button>
-    </div>
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs nav-tabs-custom mb-4" id="requestTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-content"
+                type="button" role="tab" aria-controls="pending-content" aria-selected="true" onclick="Requests.load()">
+                <i class="fas fa-clock me-2"></i>Danh sách yêu cầu đang chờ
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history-content"
+                type="button" role="tab" aria-controls="history-content" aria-selected="false" onclick="History.load()">
+                <i class="fas fa-history me-2"></i>Thống kê lịch sử phê duyệt
+            </button>
+        </li>
+    </ul>
 
-    <div class="table-responsive">
-        <table class="table table-hover align-middle" style="color:var(--text-primary);">
-            <thead>
-                <tr style="border-color:var(--border-color);">
-                    <th>Người gửi</th>
-                    <th>Công việc</th>
-                    <th>Đối tượng</th>
-                    <th>Loại</th>
-                    <th>Thời gian</th>
-                    <th class="text-end">Thao tác</th>
-                </tr>
-            </thead>
-            <tbody id="requests-table-body">
-                <tr>
-                    <td colspan="6" class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status"></div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+    <!-- Tab panes -->
+    <div class="tab-content" id="requestTabsContent">
+        <!-- Pending Tab -->
+        <div class="tab-pane fade show active" id="pending-content" role="tabpanel" aria-labelledby="pending-tab">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Yêu cầu đang chờ xử lý</h5>
+                <button class="btn-glass btn-sm" onclick="Requests.load()">
+                    <i class="fas fa-sync-alt me-1"></i> Làm mới
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" style="color:var(--text-primary);">
+                    <thead>
+                        <tr style="border-color:var(--border-color);">
+                            <th>Người gửi</th>
+                            <th>Công việc</th>
+                            <th>Đối tượng</th>
+                            <th>Loại</th>
+                            <th>Thời gian</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requests-table-body">
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination for Pending -->
+            <div class="d-flex justify-content-between align-items-center mt-4" id="pending-pagination-container"
+                style="display:none !important;">
+                <div id="pending-stats" style="font-size:0.85rem; color:var(--text-muted);"></div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0" id="pending-pagination"></ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div class="tab-pane fade" id="history-content" role="tabpanel" aria-labelledby="history-tab">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0">Lịch sử phê duyệt</h5>
+                <button class="btn-glass btn-sm" onclick="History.load()">
+                    <i class="fas fa-sync-alt me-1"></i> Làm mới
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" style="color:var(--text-primary);">
+                    <thead>
+                        <tr style="border-color:var(--border-color);">
+                            <th>Công việc</th>
+                            <th>Đối tượng</th>
+                            <th>Lý do</th>
+                            <th>Loại</th>
+                            <th>Trạng thái</th>
+                            <th>Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination for History -->
+            <div class="d-flex justify-content-between align-items-center mt-4" id="history-pagination-container"
+                style="display:none !important;">
+                <div id="history-stats" style="font-size:0.85rem; color:var(--text-muted);"></div>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination pagination-sm mb-0" id="history-pagination"></ul>
+                </nav>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -72,17 +144,22 @@
     const Requests = {
         list: [],
         currentId: null,
+        currentPage: 1,
 
         async init() {
             await this.load();
         },
 
-        async load() {
+        async load(page = 1) {
+            this.currentPage = page;
             const body = document.getElementById('requests-table-body');
+            body.innerHTML = '<tr><td colspan="6" class="text-center py-5"><div class="spinner-border text-primary" role="status"></div></td></tr>';
+
             try {
-                const data = await API.get('/tasks/requests');
+                const data = await API.get(`/tasks/requests?page=${page}`);
                 this.list = data.requests || [];
                 this.render();
+                this.renderPagination(data);
             } catch (e) {
                 body.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Không thể tải danh sách</td></tr>';
             }
@@ -122,6 +199,41 @@
         `).join('');
         },
 
+        renderPagination(data) {
+            const pag = document.getElementById('pending-pagination');
+            const stats = document.getElementById('pending-stats');
+            const container = document.getElementById('pending-pagination-container');
+
+            if (data.total <= data.per_page) {
+                container.setAttribute('style', 'display:none !important;');
+                return;
+            }
+            container.setAttribute('style', 'display:flex !important;');
+
+            stats.innerText = `Hiển thị ${data.requests.length} trên tổng số ${data.total} yêu cầu`;
+
+            let html = '';
+            html += `<li class="page-item ${data.has_prev ? '' : 'disabled'}">
+                <a class="page-link" href="#" onclick="Requests.load(${data.current_page - 1})"><i class="fas fa-chevron-left"></i></a>
+            </li>`;
+
+            for (let i = 1; i <= data.pages; i++) {
+                if (i === 1 || i === data.pages || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+                    html += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="Requests.load(${i})">${i}</a>
+                    </li>`;
+                } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            html += `<li class="page-item ${data.has_next ? '' : 'disabled'}">
+                <a class="page-link" href="#" onclick="Requests.load(${data.current_page + 1})"><i class="fas fa-chevron-right"></i></a>
+            </li>`;
+
+            pag.innerHTML = html;
+        },
+
         getTypeLabel(type) {
             const labels = { 'assign': 'Giao việc', 'delete': 'Xóa task', 'withdraw': 'Rút khỏi task', 'remove': 'Xóa thành viên' };
             return labels[type] || type;
@@ -154,14 +266,16 @@
             const note = document.getElementById('process-note').value;
             try {
                 const btn = status === 'approved' ? document.getElementById('btn-approve') : document.getElementById('btn-reject');
-                const originalText = btn.innerHTML;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
                 btn.disabled = true;
 
                 await API.post(`/tasks/requests/${this.currentId}/process`, { status, note });
                 Toast.success('Đã xử lý yêu cầu thành công');
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('processModal')).hide();
-                await this.load();
+                await this.load(this.currentPage);
+                if (document.getElementById('history-tab').classList.contains('active')) {
+                    await History.load();
+                }
             } catch (e) {
                 Toast.error(e.message || 'Lỗi khi xử lý yêu cầu');
             } finally {
@@ -173,10 +287,133 @@
         }
     };
 
-    document.addEventListener('DOMContentLoaded', () => Requests.init());
+    const History = {
+        currentPage: 1,
+        async load(page = 1) {
+            this.currentPage = page;
+            const body = document.getElementById('history-table-body');
+            body.innerHTML = '<tr><td colspan="6" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></td></tr>';
+
+            try {
+                const data = await API.get(`/tasks/requests/history?page=${page}`);
+                this.render(data.requests || []);
+                this.renderPagination(data);
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Không thể tải lịch sử</td></tr>';
+            }
+        },
+
+        render(list) {
+            const body = document.getElementById('history-table-body');
+            if (list.length === 0) {
+                body.innerHTML = '<tr><td colspan="6" class="text-center py-5 text-muted">Chưa có lịch sử phê duyệt</td></tr>';
+                return;
+            }
+
+            body.innerHTML = list.map(r => `
+                <tr style="border-color:var(--border-color);">
+                    <td style="font-size:0.85rem; font-weight:500;">${r.task_title}</td>
+                    <td style="font-size:0.85rem;">${r.target_user_name || '—'}</td>
+                    <td style="font-size:0.85rem; max-width:200px;" class="text-truncate" title="${r.note || ''}">${r.note || '—'}</td>
+                    <td>
+                        <span class="badge ${Requests.getTypeClass(r.request_type)}">
+                            ${Requests.getTypeLabel(r.request_type)}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${r.status === 'approved' ? 'bg-success' : 'bg-danger'}">
+                            ${r.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
+                        </span>
+                    </td>
+                    <td style="font-size:0.8rem; color:var(--text-muted);">${formatDateTime(r.processed_at)}</td>
+                </tr>
+            `).join('');
+        },
+
+        renderPagination(data) {
+            const pag = document.getElementById('history-pagination');
+            const stats = document.getElementById('history-stats');
+            const container = document.getElementById('history-pagination-container');
+
+            if (data.total <= data.per_page) {
+                container.setAttribute('style', 'display:none !important;');
+                return;
+            }
+            container.setAttribute('style', 'display:flex !important;');
+
+            stats.innerText = `Hiển thị ${data.requests.length} trên tổng số ${data.total} yêu cầu`;
+
+            let html = '';
+            html += `<li class="page-item ${data.has_prev ? '' : 'disabled'}">
+                <a class="page-link" href="#" onclick="History.load(${data.current_page - 1})"><i class="fas fa-chevron-left"></i></a>
+            </li>`;
+
+            for (let i = 1; i <= data.pages; i++) {
+                if (i === 1 || i === data.pages || (i >= data.current_page - 1 && i <= data.current_page + 1)) {
+                    html += `<li class="page-item ${i === data.current_page ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="History.load(${i})">${i}</a>
+                    </li>`;
+                } else if (i === data.current_page - 2 || i === data.current_page + 2) {
+                    html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            html += `<li class="page-item ${data.has_next ? '' : 'disabled'}">
+                <a class="page-link" href="#" onclick="History.load(${data.current_page + 1})"><i class="fas fa-chevron-right"></i></a>
+            </li>`;
+
+            pag.innerHTML = html;
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        Requests.init();
+    });
 </script>
 
 <style>
+    .nav-tabs-custom {
+        border-bottom: 1px solid var(--border-color);
+        gap: 2rem;
+    }
+
+    .nav-tabs-custom .nav-link {
+        border: none;
+        background: none;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.95rem;
+        position: relative;
+        transition: all 0.3s;
+    }
+
+    .nav-tabs-custom .nav-link:hover {
+        color: var(--primary);
+    }
+
+    /* TRƯỚC */
+    .nav-tabs-custom .nav-link.active {
+        color: white;
+        background: none;
+    }
+
+    /* SAU */
+    .nav-tabs-custom .nav-link.active {
+        color: white;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+    }
+
+    .nav-tabs-custom .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: var(--primary-color);
+        box-shadow: 0 -2px 10px var(--primary-color);
+    }
+
     .badge {
         font-weight: 500;
         font-size: 0.75rem;

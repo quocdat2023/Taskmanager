@@ -354,8 +354,27 @@ class TaskService:
             'has_prev': paginated.has_prev
         }
 
-    def get_pending_requests(self):
-        return [r.to_dict() for r in self.repo.get_pending_requests()]
+    def get_pending_requests(self, page=1, per_page=20):
+        paginated = self.repo.get_pending_requests(page=page, per_page=per_page)
+        return {
+            'requests': [r.to_dict() for r in paginated.items],
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'current_page': paginated.page,
+            'has_next': paginated.has_next,
+            'has_prev': paginated.has_prev
+        }
+
+    def get_processed_requests(self, page=1, per_page=20):
+        paginated = self.repo.get_processed_requests(page=page, per_page=per_page)
+        return {
+            'requests': [r.to_dict() for r in paginated.items],
+            'total': paginated.total,
+            'pages': paginated.pages,
+            'current_page': paginated.page,
+            'has_next': paginated.has_next,
+            'has_prev': paginated.has_prev
+        }
 
     def process_request(self, request_id, status, admin_id, admin_note=None):
         req = self.repo.update_request_status(request_id, status, admin_id, admin_note)
@@ -486,4 +505,3 @@ class TaskService:
         if info:
             self.repo.add_history(task_id, user_id, 'update', f'Đã xóa tài liệu đính kèm ID {attachment_id}')
         return info
-

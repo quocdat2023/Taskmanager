@@ -240,8 +240,20 @@ def withdraw_task(task_id):
 @jwt_required()
 @role_required('admin')
 def get_requests():
-    requests = task_service.get_pending_requests()
-    return jsonify({'requests': requests}), 200
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    result = task_service.get_pending_requests(page=page, per_page=per_page)
+    return jsonify(result), 200
+
+
+@task_bp.route('/tasks/requests/history', methods=['GET'])
+@jwt_required()
+@role_required('admin')
+def get_requests_history():
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    result = task_service.get_processed_requests(page=page, per_page=per_page)
+    return jsonify(result), 200
 
 
 @task_bp.route('/tasks/requests/<int:request_id>/process', methods=['POST'])
