@@ -41,7 +41,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: node-exporter-tdt1
+    container_name: node-exporter-tdt2
     restart: unless-stopped
     volumes:
       - /proc:/host/proc:ro
