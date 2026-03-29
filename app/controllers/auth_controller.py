@@ -188,3 +188,27 @@ def update_settings():
     session['full_name'] = user.full_name
         
     return jsonify({'message': 'Cập nhật cài đặt thành công', 'user': user.to_dict()}), 200
+
+@auth_bp.route('/change-password', methods=['PUT'])
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    old_password = data.get('old_password')
+    new_password = data.get('new_password')
+    
+    if not old_password or not new_password:
+        return jsonify({'error': 'Old password and new password are required'}), 400
+        
+    user = user_service.get_user(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+        
+    if not user.check_password(old_password):
+        return jsonify({'error': 'Mật khẩu hiện tại không chính xác'}), 400
+        
+    user_service.update_user(user_id, password=new_password)
+    
+    return jsonify({'message': 'Đổi mật khẩu thành công'}), 200
+
