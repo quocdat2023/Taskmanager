@@ -102,7 +102,7 @@ const AdminQnA = {
                             <span>${this.timeAgo(q.created_at)}</span>
                             <span class="text-separator">•</span>
                             <i class="far fa-comments"></i> ${q.answers_count}
-                            ${q.is_resolved ? '<button class="btn-resolve" disabled><i class="fas fa-check"></i> Đã giải quyết</button>' : ''}
+                           <!-- ${q.is_resolved ? '<button class="btn-resolve" disabled><i class="fas fa-check"></i> Đã giải quyết</button>' : ''} -->
                         </div>
                     </div>
                 </div>
