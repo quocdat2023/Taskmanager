@@ -26,7 +26,7 @@ class EmailService:
     def _header_block(subtitle, title, date_str):
         return f"""
     <tr>
-      <td style="padding:28px 36px 20px;border-bottom:1px solid #f1f3f5;">
+      <td class="rp-pad-hdr" style="padding:28px 36px 20px;border-bottom:1px solid #f1f3f5;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding-bottom:18px;">
@@ -60,7 +60,7 @@ class EmailService:
         return f"""
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
           <tr>
-            <td width="50%" style="padding-right:8px;vertical-align:top;">
+            <td class="rp-card-cell rp-card-left" width="50%" style="padding-right:8px;vertical-align:top;">
               <table width="100%" cellpadding="0" cellspacing="0" border="0"
                      style="border:1px solid #f1f3f5;border-radius:8px;background:#fafafa;">
                 <tr><td style="padding:14px 16px;">
@@ -70,7 +70,7 @@ class EmailService:
                 </td></tr>
               </table>
             </td>
-            <td width="50%" style="padding-left:8px;vertical-align:top;">
+            <td class="rp-card-cell rp-card-right" width="50%" style="padding-left:8px;vertical-align:top;">
               <table width="100%" cellpadding="0" cellspacing="0" border="0"
                      style="border:1px solid #f1f3f5;border-radius:8px;background:#fafafa;">
                 <tr><td style="padding:14px 16px;">
@@ -113,7 +113,7 @@ class EmailService:
     def _footer_block():
         return """
     <tr>
-      <td style="border-top:1px solid #f1f3f5;padding:14px 36px;background:#fafafa;">
+      <td class="rp-pad-ban" style="border-top:1px solid #f1f3f5;padding:14px 36px;background:#fafafa;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td><span style="color:#9ca3af;font-size:11px;">EduTask &copy; 2025</span></td>
@@ -132,16 +132,55 @@ class EmailService:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <style>
+    /* ── Responsive overrides for mobile clients (Gmail iOS/Android) ── */
+    @media only screen and (max-width: 600px) {{
+
+      /* Make outer wrapper full-width, remove rounded corners */
+      .rp-outer {{
+        width: 100% !important;
+        border-radius: 0 !important;
+      }}
+
+      /* Tighten horizontal padding on main sections */
+      .rp-pad-hdr {{
+        padding: 20px 20px 16px !important;
+      }}
+      .rp-pad-body {{
+        padding: 20px 20px !important;
+      }}
+      .rp-pad-ban {{
+        padding: 12px 20px !important;
+      }}
+      .rp-pad-task-band {{
+        padding: 14px 20px !important;
+      }}
+
+      /* Stack the 2-column info cards vertically */
+      .rp-card-cell {{
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }}
+      .rp-card-left {{
+        padding-right: 0 !important;
+        padding-bottom: 8px !important;
+      }}
+      .rp-card-right {{
+        padding-left: 0 !important;
+      }}
+    }}
+  </style>
 </head>
-<body style="margin:0;padding:24px 12px;background:#f4f6f8;
+<body style="margin:0;padding:16px 0;background:#f4f6f8;
              font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
 
 <table width="100%" cellpadding="0" cellspacing="0" border="0">
   <tr>
-    <td align="center">
-      <table width="580" cellpadding="0" cellspacing="0" border="0"
+    <td align="center" style="padding:0 12px;">
+      <table class="rp-outer" width="580" cellpadding="0" cellspacing="0" border="0"
              style="background:#ffffff;border-radius:12px;overflow:hidden;
-                    box-shadow:0 2px 12px rgba(0,0,0,0.08);">
+                    box-shadow:0 2px 12px rgba(0,0,0,0.08);max-width:580px;width:100%;">
         <!-- Top accent bar -->
         <tr>
           <td height="3" style="background:#e53e3e;font-size:0;line-height:0;">&nbsp;</td>
@@ -211,7 +250,7 @@ class EmailService:
 
     <!-- Task title band -->
     <tr>
-      <td style="padding:16px 36px;border-bottom:1px solid #f1f3f5;background:#fafafa;">
+      <td class="rp-pad-task-band" style="padding:16px 36px;border-bottom:1px solid #f1f3f5;background:#fafafa;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="vertical-align:top;">
@@ -219,7 +258,7 @@ class EmailService:
                          text-transform:uppercase;margin:0 0 5px;">Công việc #{task.id}</p>
               <p style="color:#111827;font-size:15px;font-weight:700;margin:0;line-height:1.4;">{task.title}</p>
             </td>
-            <td style="vertical-align:top;text-align:right;padding-left:16px;white-space:nowrap;">
+            <td style="vertical-align:top;text-align:right;padding-left:12px;white-space:nowrap;">
               <span style="background:{p_bg};color:{p_color};border:1px solid {p_border};
                            border-radius:20px;padding:4px 12px;font-size:12px;
                            font-weight:600;display:inline-block;">{p_icon} {p_label}</span>
@@ -230,7 +269,7 @@ class EmailService:
     </tr>
 
     <tr>
-      <td style="padding:24px 36px;">
+      <td class="rp-pad-body" style="padding:24px 36px;">
         <p style="color:#4b5563;font-size:14px;margin:0 0 22px;line-height:1.7;">
           Xin chào,<br>
           Bạn vừa được giao hoặc cập nhật một công việc trong hệ thống
@@ -318,7 +357,7 @@ class EmailService:
 
     <!-- Countdown banner -->
     <tr>
-      <td style="padding:14px 36px;border-bottom:1px solid #f1f3f5;background:#fff5f5;">
+      <td class="rp-pad-ban" style="padding:14px 36px;border-bottom:1px solid #f1f3f5;background:#fff5f5;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="vertical-align:middle;">
@@ -334,7 +373,7 @@ class EmailService:
                 </tr>
               </table>
             </td>
-            <td style="text-align:right;vertical-align:middle;white-space:nowrap;padding-left:16px;">
+            <td style="text-align:right;vertical-align:middle;white-space:nowrap;padding-left:12px;">
               <span style="background:#e53e3e;color:#ffffff;border-radius:20px;
                            padding:5px 14px;font-size:12px;font-weight:700;display:inline-block;">
                 {minutes_before} phút
@@ -346,7 +385,7 @@ class EmailService:
     </tr>
 
     <tr>
-      <td style="padding:24px 36px;">
+      <td class="rp-pad-body" style="padding:24px 36px;">
         <p style="color:#4b5563;font-size:14px;margin:0 0 22px;line-height:1.7;">
           Xin chào <strong style="color:#111827;">{user.full_name}</strong>,<br>
           Đây là nhắc nhở cho sự kiện sắp diễn ra trong lịch học của bạn.
@@ -453,7 +492,7 @@ class EmailService:
 
     <!-- Approved banner -->
     <tr>
-      <td style="padding:14px 36px;border-bottom:1px solid #f1f3f5;background:#f0fdf4;">
+      <td class="rp-pad-ban" style="padding:14px 36px;border-bottom:1px solid #f1f3f5;background:#f0fdf4;">
         <table cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="font-size:18px;vertical-align:middle;padding-right:10px;">&#9989;</td>
@@ -468,7 +507,7 @@ class EmailService:
     </tr>
 
     <tr>
-      <td style="padding:24px 36px;">
+      <td class="rp-pad-body" style="padding:24px 36px;">
         <p style="color:#4b5563;font-size:14px;margin:0 0 22px;line-height:1.7;">
           Xin chào <strong style="color:#111827;">{user.full_name}</strong>,<br>
           Bạn chính thức là thành viên của công việc bên dưới. Truy cập hệ thống để bắt đầu ngay!

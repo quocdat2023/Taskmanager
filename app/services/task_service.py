@@ -395,6 +395,15 @@ class TaskService:
                     reference_type='task',
                     reference_id=task.id
                 )
+                
+                # Send email notification to the new member
+                try:
+                    target_user = self.user_repo.get_by_id(req.target_user_id)
+                    if target_user:
+                        from app.services.email_service import EmailService
+                        EmailService.send_new_member_notification(task, target_user)
+                except Exception as e:
+                    print(f"Error sending email in process_request: {e}")
             elif req.request_type == 'delete':
                 self.delete_task(req.task_id, admin_id)
                 return True
